@@ -261,10 +261,39 @@
   }
 
   let savedUrl = null;
+  let savedBlob = null;
+  let savedName = '';
 
-  // Renders at full resolution and shows the image so it can be saved with a
-  // long-press (iOS) or right-click. A direct file download is also offered,
-  // though sandboxed hosts may block it.
+  // Inside the Claude artifact viewer, files must go through its `downloads`
+  // capability. Elsewhere `window.claude` is absent and a normal link is used.
+  const inClaudeViewer = !!(window.claude && typeof window.claude.use === 'function');
+  const downloadsReady = inClaudeViewer
+    ? window.claude.use('downloads').catch(() => null)
+    : Promise.resolve(null);
+
+  function setStatus(text) {
+    $('#dlStatus').textContent = text;
+  }
+
+  // Returns true if the file was handed to the viewer's save prompt.
+  async function saveWithViewer(blob, filename) {
+    const downloads = await downloadsReady;
+    if (!downloads) return false;
+    try {
+      await downloads.save({ filename, data: blob });
+      setStatus('Saved. Set it in Settings → Wallpaper.');
+    } catch (err) {
+      const code = err && err.code;
+      if (code === 'declined') setStatus('');
+      else if (code === 'rate_limited') setStatus('A save prompt is already open.');
+      else return false;
+    }
+    return true;
+  }
+
+  // Renders at full resolution, then offers the file. If no save prompt is
+  // available, shows the image so it can be saved with a long-press (iOS) or
+  // right-click, plus a direct download link.
   function download() {
     const wall = state.visible[state.current];
     if (!wall) return;
@@ -272,27 +301,36 @@
     const btn = $('#download');
     btn.disabled = true;
     btn.textContent = 'Rendering…';
+    setStatus('');
     // Yield a frame so the button state paints before the heavy render.
     setTimeout(() => {
       const canvas = document.createElement('canvas');
       draw(canvas, wall, d.w, d.h, state.variant);
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         btn.disabled = false;
-        btn.textContent = 'Save wallpaper';
+        btn.textContent = 'Download wallpaper';
         if (!blob) return;
-        closeSaver();
-        savedUrl = URL.createObjectURL(blob);
-        $('#saverImg').src = savedUrl;
-        const link = $('#saverLink');
-        if (link) {
-          link.href = savedUrl;
-          link.download = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-${d.w}x${d.h}.png`;
-        }
-        $('#saverInfo').textContent = `${$('#vName').textContent} · ${d.w} × ${d.h} px`;
-        $('#saver').showModal();
-        $('#saverClose').focus();
+        const filename = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-${d.w}x${d.h}.png`;
+        if (await saveWithViewer(blob, filename)) return;
+        showSaver(blob, filename, `${$('#vName').textContent} · ${d.w} × ${d.h} px`);
       }, 'image/png');
     }, 30);
+  }
+
+  function showSaver(blob, filename, info) {
+    closeSaver();
+    savedBlob = blob;
+    savedName = filename;
+    savedUrl = URL.createObjectURL(blob);
+    $('#saverImg').src = savedUrl;
+    const link = $('#saverLink');
+    link.href = savedUrl;
+    link.download = filename;
+    // In the Claude viewer a plain link can't download, so hide it.
+    downloadsReady.then((downloads) => { link.hidden = inClaudeViewer && !downloads; });
+    $('#saverInfo').textContent = info;
+    $('#saver').showModal();
+    $('#saverClose').focus();
   }
 
   function closeSaver() {
@@ -301,6 +339,7 @@
       URL.revokeObjectURL(savedUrl);
       savedUrl = null;
     }
+    savedBlob = null;
   }
 
   function bindViewer() {
@@ -317,6 +356,11 @@
     });
     $('#download').addEventListener('click', download);
     $('#saverClose').addEventListener('click', closeSaver);
+    $('#saverLink').addEventListener('click', async (e) => {
+      if (!inClaudeViewer || !savedBlob) return;
+      e.preventDefault();
+      await saveWithViewer(savedBlob, savedName);
+    });
     $('#saver').addEventListener('click', (e) => { if (e.target === $('#saver')) closeSaver(); });
     $('#saver').addEventListener('close', closeSaver);
     document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
