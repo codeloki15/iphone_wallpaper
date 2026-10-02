@@ -260,6 +260,11 @@
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
+  let savedUrl = null;
+
+  // Renders at full resolution and shows the image so it can be saved with a
+  // long-press (iOS) or right-click. A direct file download is also offered,
+  // though sandboxed hosts may block it.
   function download() {
     const wall = state.visible[state.current];
     if (!wall) return;
@@ -273,18 +278,29 @@
       draw(canvas, wall, d.w, d.h, state.variant);
       canvas.toBlob((blob) => {
         btn.disabled = false;
-        btn.textContent = 'Download PNG';
+        btn.textContent = 'Save wallpaper';
         if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-${d.w}x${d.h}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        closeSaver();
+        savedUrl = URL.createObjectURL(blob);
+        $('#saverImg').src = savedUrl;
+        const link = $('#saverLink');
+        if (link) {
+          link.href = savedUrl;
+          link.download = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-${d.w}x${d.h}.png`;
+        }
+        $('#saverInfo').textContent = `${$('#vName').textContent} · ${d.w} × ${d.h} px`;
+        $('#saver').showModal();
+        $('#saverClose').focus();
       }, 'image/png');
     }, 30);
+  }
+
+  function closeSaver() {
+    if ($('#saver').open) $('#saver').close();
+    if (savedUrl) {
+      URL.revokeObjectURL(savedUrl);
+      savedUrl = null;
+    }
   }
 
   function bindViewer() {
@@ -300,6 +316,9 @@
       if (wall) toggleFavorite(wall);
     });
     $('#download').addEventListener('click', download);
+    $('#saverClose').addEventListener('click', closeSaver);
+    $('#saver').addEventListener('click', (e) => { if (e.target === $('#saver')) closeSaver(); });
+    $('#saver').addEventListener('close', closeSaver);
     document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
     // Close when clicking the backdrop.

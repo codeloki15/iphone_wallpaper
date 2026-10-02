@@ -11,7 +11,7 @@ iPhone model you choose. There are no image files to host.
 - Full-screen preview on an iPhone mockup, with lock screen (live clock) and home screen views
 - 12 iPhone screen sizes, from SE to 17 Pro Max; the model is auto-detected when browsing on an iPhone
 - **Remix**: re-roll any design with a new random seed
-- PNG download at full resolution
+- Save at full resolution: opens the image to press-and-hold save on iPhone, with a direct download link as well
 
 ## Run locally
 

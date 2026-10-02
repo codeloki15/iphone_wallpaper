@@ -101,9 +101,22 @@
             <span>Favorite</span>
           </button>
         </div>
-        <button type="button" class="btn primary wide" id="download">Download PNG</button>
-        <p class="hint">On iPhone: tap Download, then Share → Save Image. Set it in Settings → Wallpaper.</p>
+        <button type="button" class="btn primary wide" id="download">Save wallpaper</button>
+        <p class="hint">Opens the full-size image. Press and hold it to save it to Photos, then set it in Settings → Wallpaper.</p>
       </aside>
+    </div>
+
+  </dialog>
+  <dialog class="saver" id="saver" aria-labelledby="saverTitle">
+    <div class="saver-card">
+      <h3 id="saverTitle">Your wallpaper is ready</h3>
+      <img id="saverImg" alt="Full-resolution wallpaper">
+      <p id="saverInfo"></p>
+      <p class="hint">On iPhone, press and hold the image and tap <strong>Save to Photos</strong>. On a computer, right-click it and choose <strong>Save Image As</strong>.</p>
+      <div class="row">
+        <a class="btn ghost" id="saverLink" href="#" download>Download file</a>
+        <button type="button" class="btn primary" id="saverClose">Done</button>
+      </div>
     </div>
   </dialog>
 
