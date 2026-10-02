@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pocket Walls</title>
+  <meta name="description" content="Free iPhone wallpapers, rendered at your device's exact resolution. Preview on the lock screen, remix, and download.">
+  <meta name="theme-color" content="#0b0b10">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238338ec'/%3E%3Cstop offset='1' stop-color='%23ff006e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='8' y='2' width='16' height='28' rx='5' fill='url(%23g)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Pocket Walls home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      Pocket Walls
+    </a>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="search" placeholder="Search wallpapers" autocomplete="off" aria-label="Search wallpapers">
+    </label>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Free · No sign-up · Pixel-perfect</p>
+        <h1>Wallpapers made for <span class="grad">your iPhone.</span></h1>
+        <p class="lede">Every design is rendered on the fly at your screen's exact resolution. Preview it on the lock screen, remix it into something new, and download.</p>
+        <div class="hero-cta">
+          <a href="#gallery" class="btn primary">Browse wallpapers</a>
+          <button type="button" class="btn ghost" id="surprise">Surprise me</button>
+        </div>
+      </div>
+      <div class="hero-phones" id="heroPhones" aria-hidden="true"></div>
+    </section>
+
+    <section id="gallery" class="gallery">
+      <div class="chips" id="chips" role="tablist" aria-label="Categories"></div>
+      <div class="grid" id="grid"></div>
+      <p class="empty" id="empty" hidden>No wallpapers match your search.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Pocket Walls: wallpapers generated in your browser. Nothing is uploaded.</p>
+  </footer>
+
+  <dialog id="viewer" aria-labelledby="vName">
+    <button type="button" class="icon-btn close" id="close" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="viewer-body">
+      <div class="stage">
+        <button type="button" class="icon-btn nav" id="prev" aria-label="Previous wallpaper">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <div class="phone" id="phone">
+          <div class="screen" id="screen">
+            <canvas id="phoneCanvas"></canvas>
+            <div class="island"></div>
+            <div class="lock" id="lockOverlay">
+              <div class="lock-date" id="lockDate"></div>
+              <div class="lock-time" id="lockTime"></div>
+              <div class="lock-actions"><span></span><span></span></div>
+            </div>
+            <div class="home" id="homeOverlay" hidden>
+              <div class="apps" id="apps"></div>
+              <div class="dock"><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="home-bar"></div>
+          </div>
+        </div>
+        <button type="button" class="icon-btn nav" id="next" aria-label="Next wallpaper">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <aside class="panel">
+        <p class="eyebrow" id="vCategory"></p>
+        <h2 id="vName"></h2>
+
+        <div class="seg" role="group" aria-label="Preview screen">
+          <button type="button" class="seg-btn" data-mode="lock" aria-pressed="true">Lock Screen</button>
+          <button type="button" class="seg-btn" data-mode="home" aria-pressed="false">Home Screen</button>
+        </div>
+
+        <label class="field">
+          <span>iPhone model</span>
+          <select id="model"></select>
+        </label>
+        <p class="res" id="vRes"></p>
+
+        <div class="row">
+          <button type="button" class="btn ghost" id="remix">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M5.5 15a7 7 0 0 0 12.4 2M18.5 9A7 7 0 0 0 6.1 7"/></svg>
+            Remix
+          </button>
+          <button type="button" class="btn ghost" id="fav" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+            <span>Favorite</span>
+          </button>
+        </div>
+        <button type="button" class="btn primary wide" id="download">Download PNG</button>
+        <p class="hint">On iPhone: tap Download, then Share → Save Image. Set it in Settings → Wallpaper.</p>
+      </aside>
+    </div>
+  </dialog>
+
+  <script src="wallpapers.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
