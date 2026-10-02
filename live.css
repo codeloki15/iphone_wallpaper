@@ -1,0 +1,60 @@
+/* Live wallpapers: badges on cards and in the viewer. */
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.live-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 30%, transparent);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+/* On a thumbnail the badge sits on the artwork, so it is always light-on-dark. */
+.thumb { position: relative; }
+
+.thumb .live-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.v-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.v-eyebrow .eyebrow { margin: 0; }
+
+#liveNote { margin-top: 10px; }
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-badge::before { animation: none; }
+}

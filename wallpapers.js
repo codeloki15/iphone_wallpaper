@@ -106,7 +106,7 @@
     ctx.fill();
   }
 
-  // ---------- generators: (ctx, w, h, rand, palette) ----------
+  // ---------- generators: (ctx, w, h, rand, palette, t) ----------
 
   const GENS = {
     aurora(ctx, w, h, r, p) {
@@ -560,14 +560,39 @@
   const categories = ['All', ...new Set(list.map((w) => w.category))];
 
   // Render a wallpaper. `variant` > 0 produces a "remix" with a different seed.
-  function render(ctx, w, h, wall, variant) {
+  // `t` is the time in seconds for animated (live) walls; static walls ignore it.
+  function render(ctx, w, h, wall, variant, t = 0) {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     const rand = mulberry32(wall.seed + (variant || 0) * 7919);
-    GENS[wall.gen](ctx, w, h, rand, wall.palette);
+    GENS[wall.gen](ctx, w, h, rand, wall.palette, t);
     ctx.restore();
   }
 
-  global.Walls = { list, categories, render };
+  // Add generators and catalogue rows from another script (e.g. live.js).
+  // Rows are [name, category, gen, palette, extraProps]; they are featured
+  // ahead of the built-in walls, and `categories` is updated in place.
+  function register(gens, rows) {
+    Object.assign(GENS, gens);
+    const added = rows.map(([name, category, gen, palette, extra]) => Object.assign({
+      id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      name,
+      category,
+      gen,
+      palette,
+      seed: hash(name),
+    }, extra));
+    list.unshift(...added);
+    categories.splice(0, categories.length, 'All', ...new Set(list.map((w) => w.category)));
+    return added;
+  }
+
+  global.Walls = {
+    list,
+    categories,
+    render,
+    register,
+    util: { mulberry32, hash, hexToRgb, rgba, mix, sample, vertical },
+  };
 })(window);

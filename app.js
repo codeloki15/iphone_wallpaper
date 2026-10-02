@@ -19,10 +19,16 @@
 
   const THUMB_W = 360;
   const THUMB_H = Math.round((THUMB_W * 2556) / 1179);
+  // Live thumbnails redraw every frame, so they use a smaller canvas.
+  const LIVE_THUMB_W = 270;
+  const LIVE_THUMB_H = Math.round((LIVE_THUMB_W * 2556) / 1179);
   const HERO_PICKS = ['synthwave', 'aurora', 'alpine-dawn'];
 
   const $ = (s) => document.querySelector(s);
   const walls = Walls.list;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const clockStart = performance.now();
+  const seconds = () => (performance.now() - clockStart) / 1000;
 
   // localStorage can be unavailable (private mode, blocked storage).
   const store = {
@@ -55,12 +61,14 @@
     current: -1,
     variant: 0,
     mode: 'lock',
+    t: 0,
   };
 
-  function draw(canvas, wall, w, h, variant) {
-    canvas.width = w;
-    canvas.height = h;
-    Walls.render(canvas.getContext('2d'), w, h, wall, variant);
+  // Resizing a canvas reallocates it, so only do it when the size changes.
+  function draw(canvas, wall, w, h, variant, t = 0) {
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    Walls.render(canvas.getContext('2d'), w, h, wall, variant, t);
   }
 
   const heartSvg =
@@ -83,19 +91,54 @@
   // ---------- gallery ----------
 
   const cards = new Map();
+  const wallOf = new WeakMap();
+
+  function drawThumb(card, t) {
+    const wall = wallOf.get(card);
+    if (wall.live) draw(card.querySelector('canvas'), wall, LIVE_THUMB_W, LIVE_THUMB_H, 0, t);
+    else draw(card.querySelector('canvas'), wall, THUMB_W, THUMB_H, 0);
+  }
+
   const thumbObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
         if (!e.isIntersecting) return;
         const card = e.target;
         thumbObserver.unobserve(card);
-        const wall = walls.find((w) => w.id === card.dataset.id);
-        draw(card.querySelector('canvas'), wall, THUMB_W, THUMB_H, 0);
+        drawThumb(card, seconds());
         card.classList.add('ready');
       });
     },
     { rootMargin: '400px 0px' }
   );
+
+  // Live cards animate at ~30fps, only while on screen and the viewer is closed.
+  const liveVisible = new Set();
+  let thumbLoop = 0;
+  let lastThumbFrame = 0;
+  const liveObserver = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) liveVisible.add(e.target);
+      else liveVisible.delete(e.target);
+    });
+    startThumbLoop();
+  });
+
+  function startThumbLoop() {
+    if (thumbLoop || !liveVisible.size || reduceMotion.matches || viewer.open) return;
+    thumbLoop = requestAnimationFrame(tickThumbs);
+  }
+
+  function tickThumbs(ts) {
+    thumbLoop = 0;
+    if (!liveVisible.size || reduceMotion.matches || viewer.open) return;
+    if (ts - lastThumbFrame >= 33) {
+      lastThumbFrame = ts;
+      const t = seconds();
+      liveVisible.forEach((card) => { if (card.isConnected) drawThumb(card, t); });
+    }
+    thumbLoop = requestAnimationFrame(tickThumbs);
+  }
 
   function buildCards() {
     walls.forEach((wall) => {
@@ -103,8 +146,9 @@
       card.className = 'card';
       card.dataset.id = wall.id;
       card.innerHTML = `
-        <button type="button" class="thumb" aria-label="Preview ${wall.name}">
+        <button type="button" class="thumb" aria-label="Preview ${wall.name}${wall.live ? ' (live)' : ''}">
           <canvas width="${THUMB_W}" height="${THUMB_H}"></canvas>
+          ${wall.live ? '<span class="live-badge" aria-hidden="true">Live</span>' : ''}
         </button>
         <div class="meta">
           <div>
@@ -116,7 +160,9 @@
       card.querySelector('.thumb').addEventListener('click', () => openViewer(state.visible.indexOf(wall)));
       card.querySelector('.fav-btn').addEventListener('click', () => toggleFavorite(wall));
       cards.set(wall.id, card);
+      wallOf.set(card, wall);
       thumbObserver.observe(card);
+      if (wall.live) liveObserver.observe(card);
     });
     syncFavorites();
   }
@@ -225,6 +271,10 @@
     const d = state.device;
     $('#vName').textContent = wall.name + (state.variant ? ` · Remix ${state.variant}` : '');
     $('#vCategory').textContent = wall.category;
+    // For live walls the badge already says "Live", so drop the duplicate label.
+    $('#vCategory').hidden = !!wall.live;
+    $('#vLive').hidden = !wall.live;
+    $('#liveNote').hidden = !wall.live;
     $('#vRes').textContent = `${d.w} × ${d.h} px · exact native resolution`;
     screenEl.style.setProperty('--ar', `${d.w} / ${d.h}`);
     screenEl.classList.toggle('classic', d.h / d.w < 2);
@@ -235,8 +285,32 @@
       const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       const cw = Math.round(screenEl.clientWidth * dpr);
       const ch = Math.round((cw * d.h) / d.w);
-      draw(phoneCanvas, wall, cw, ch, state.variant);
+      renderPhone(wall, cw, ch);
     });
+  }
+
+  let viewerLoop = 0;
+
+  function stopViewerLoop() {
+    cancelAnimationFrame(viewerLoop);
+    viewerLoop = 0;
+  }
+
+  // Static walls draw once; live walls animate while the viewer is open.
+  // Under reduced motion a live wall shows its first frame.
+  function renderPhone(wall, cw, ch) {
+    stopViewerLoop();
+    if (!wall.live || reduceMotion.matches) {
+      state.t = 0;
+      draw(phoneCanvas, wall, cw, ch, state.variant, 0);
+      return;
+    }
+    const tick = () => {
+      state.t = seconds();
+      draw(phoneCanvas, wall, cw, ch, state.variant, state.t);
+      viewerLoop = requestAnimationFrame(tick);
+    };
+    tick();
   }
 
   function setMode(mode) {
@@ -302,10 +376,12 @@
     btn.disabled = true;
     btn.textContent = 'Rendering…';
     setStatus('');
+    // A live wall is saved as the frame on screen right now.
+    const t = wall.live ? state.t : 0;
     // Yield a frame so the button state paints before the heavy render.
     setTimeout(() => {
       const canvas = document.createElement('canvas');
-      draw(canvas, wall, d.w, d.h, state.variant);
+      draw(canvas, wall, d.w, d.h, state.variant, t);
       canvas.toBlob(async (blob) => {
         btn.disabled = false;
         btn.textContent = 'Download wallpaper';
@@ -364,6 +440,15 @@
     $('#saver').addEventListener('click', (e) => { if (e.target === $('#saver')) closeSaver(); });
     $('#saver').addEventListener('close', closeSaver);
     document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+    viewer.addEventListener('close', () => {
+      stopViewerLoop();
+      startThumbLoop();
+    });
+    reduceMotion.addEventListener('change', () => {
+      startThumbLoop();
+      if (viewer.open) updateViewer();
+    });
 
     // Close when clicking the backdrop.
     viewer.addEventListener('click', (e) => {
