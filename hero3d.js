@@ -235,7 +235,7 @@
 
   // ---------- screen content ----------
 
-  const PICKS = ['synthwave', 'glass-orbs', 'aurora', 'alpine-dawn', 'neon-terrain', 'liquid-pop'];
+  const PICKS = ['lunar-peak', 'synthwave', 'glass-orbs', 'planet-rise', 'aurora', 'neon-terrain', 'palm-sunset'];
   const picks = PICKS.map((id) => Walls.list.find((w) => w.id === id)).filter(Boolean);
   const SLIDE = 4;
   const FADE = 0.8;
@@ -247,20 +247,29 @@
   liveCanvas.height = WH;
   const FONT = '-apple-system, "SF Pro Rounded", "SF Pro Display", system-ui, sans-serif';
 
+  function still(key, wall, layer) {
+    let c = stills.get(key);
+    if (!c) {
+      c = document.createElement('canvas');
+      c.width = WW;
+      c.height = WH;
+      Walls.render(c.getContext('2d'), WW, WH, wall, 0, 0, layer);
+      stills.set(key, c);
+    }
+    return c;
+  }
+
+  // For spatial walls this is only the background; see frontImage.
   function wallImage(wall, t) {
     if (wall.live) {
       Walls.render(liveCanvas.getContext('2d'), WW, WH, wall, 0, t);
       return liveCanvas;
     }
-    let c = stills.get(wall.id);
-    if (!c) {
-      c = document.createElement('canvas');
-      c.width = WW;
-      c.height = WH;
-      Walls.render(c.getContext('2d'), WW, WH, wall, 0);
-      stills.set(wall.id, c);
-    }
-    return c;
+    return wall.spatial ? still(wall.id + ':back', wall, 'back') : still(wall.id, wall);
+  }
+
+  function frontImage(wall) {
+    return still(wall.id + ':front', wall, 'front');
   }
 
   function roundRectPath(g, x, y, w, h, r) {
@@ -292,11 +301,22 @@
     sg.textAlign = 'center';
     sg.shadowColor = 'rgba(0,0,0,0.25)';
     sg.shadowBlur = 18;
-    sg.font = `600 34px ${FONT}`;
-    sg.fillText(dateText, SW / 2, 222);
-    sg.font = `700 172px ${FONT}`;
-    sg.fillText(clockText, SW / 2, 392);
+    // Same proportions as the lock screen in the viewer.
+    sg.font = `600 32px ${FONT}`;
+    sg.fillText(dateText, SW / 2, 156);
+    sg.font = `700 156px ${FONT}`;
+    sg.fillText(clockText, SW / 2, 304);
     sg.shadowBlur = 0;
+    // Spatial foregrounds go over the clock, like iOS Spatial Scenes.
+    if (current.spatial && fade < 1) {
+      sg.globalAlpha = 1 - fade;
+      sg.drawImage(frontImage(current), BEZEL, BEZEL);
+    }
+    if (next.spatial && fade > 0) {
+      sg.globalAlpha = fade;
+      sg.drawImage(frontImage(next), BEZEL, BEZEL);
+    }
+    sg.globalAlpha = 1;
     sg.fillStyle = 'rgba(255,255,255,0.85)';
     roundRectPath(sg, SW / 2 - 70, SH - BEZEL - 22, 140, 8, 4);
     sg.fill();

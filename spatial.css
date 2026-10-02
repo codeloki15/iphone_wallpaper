@@ -1,0 +1,80 @@
+/* Spatial wallpapers: the clock sits between two depth layers. */
+
+/* Stacking inside the phone screen, back to front: wallpaper, clock, spatial
+   foreground, then the date, buttons, home screen and hardware. */
+#phoneFront {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.screen .lock-time { position: relative; z-index: 1; }
+.screen .lock-date { position: relative; z-index: 3; }
+.screen .lock-actions,
+.screen .home { z-index: 3; }
+.screen .island,
+.screen .home-bar { z-index: 4; }
+
+.spatial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* Two offset squares: a small "layers" mark. */
+.spatial-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  border: 1.5px solid var(--accent-3);
+  box-shadow: 2px -2px 0 -0.5px var(--accent-3);
+}
+
+.thumb .spatial-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.thumb .spatial-badge::before {
+  border-color: #fff;
+  box-shadow: 2px -2px 0 -0.5px #fff;
+}
+
+.thumb .spatial-front {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Hovering a spatial card separates its layers. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .thumb.spatial canvas { transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .thumb.spatial.tilting canvas { transition: transform 0.12s ease-out; }
+
+  .thumb.spatial.tilting canvas:first-child {
+    transform: scale(1.06) translate(calc(var(--px, 0) * -2%), calc(var(--py, 0) * -2%));
+  }
+
+  .thumb.spatial.tilting .spatial-front {
+    transform-origin: 50% 0;
+    transform: scale(1.08) translate(calc(var(--px, 0) * 3%), calc(var(--py, 0) * 2%));
+  }
+}

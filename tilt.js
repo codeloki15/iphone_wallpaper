@@ -22,7 +22,7 @@
   function releaseCard() {
     if (!card) return;
     card.classList.remove('tilting');
-    ['--rx', '--ry', '--gx', '--gy'].forEach((p) => card.style.removeProperty(p));
+    ['--rx', '--ry', '--gx', '--gy', '--px', '--py'].forEach((p) => card.style.removeProperty(p));
     card = null;
   }
 
@@ -36,6 +36,9 @@
     card.style.setProperty('--ry', `${((nx - 0.5) * 2 * CARD_MAX).toFixed(2)}deg`);
     card.style.setProperty('--gx', `${(nx * 100).toFixed(1)}%`);
     card.style.setProperty('--gy', `${(ny * 100).toFixed(1)}%`);
+    // -1..1 offsets for layered (spatial) thumbnails.
+    card.style.setProperty('--px', ((nx - 0.5) * 2).toFixed(3));
+    card.style.setProperty('--py', ((ny - 0.5) * 2).toFixed(3));
   }
 
   grid.addEventListener('pointermove', (e) => {

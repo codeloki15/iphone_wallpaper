@@ -561,12 +561,14 @@
 
   // Render a wallpaper. `variant` > 0 produces a "remix" with a different seed.
   // `t` is the time in seconds for animated (live) walls; static walls ignore it.
-  function render(ctx, w, h, wall, variant, t = 0) {
+  // `layer` ('back' or 'front') draws one depth layer of a spatial wall; the
+  // front layer has a transparent background. Omit it to draw the whole image.
+  function render(ctx, w, h, wall, variant, t = 0, layer) {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     const rand = mulberry32(wall.seed + (variant || 0) * 7919);
-    GENS[wall.gen](ctx, w, h, rand, wall.palette, t);
+    GENS[wall.gen](ctx, w, h, rand, wall.palette, t, layer);
     ctx.restore();
   }
 
@@ -593,6 +595,6 @@
     categories,
     render,
     register,
-    util: { mulberry32, hash, hexToRgb, rgba, mix, sample, vertical },
+    util: { mulberry32, hash, hexToRgb, rgba, mix, sample, vertical, grain, ridge },
   };
 })(window);

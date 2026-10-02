@@ -93,10 +93,25 @@
   const cards = new Map();
   const wallOf = new WeakMap();
 
+  // Draws one depth layer of a spatial wall (the front is transparent).
+  function drawLayer(canvas, wall, w, h, variant, layer) {
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    Walls.render(canvas.getContext('2d'), w, h, wall, variant, 0, layer);
+  }
+
   function drawThumb(card, t) {
     const wall = wallOf.get(card);
-    if (wall.live) draw(card.querySelector('canvas'), wall, LIVE_THUMB_W, LIVE_THUMB_H, 0, t);
-    else draw(card.querySelector('canvas'), wall, THUMB_W, THUMB_H, 0);
+    const canvas = card.querySelector('canvas');
+    if (wall.live) {
+      draw(canvas, wall, LIVE_THUMB_W, LIVE_THUMB_H, 0, t);
+    } else if (wall.spatial) {
+      // Two canvases, so hovering can shift them at different depths.
+      drawLayer(canvas, wall, THUMB_W, THUMB_H, 0, 'back');
+      drawLayer(card.querySelector('.spatial-front'), wall, THUMB_W, THUMB_H, 0, 'front');
+    } else {
+      draw(canvas, wall, THUMB_W, THUMB_H, 0);
+    }
   }
 
   const thumbObserver = new IntersectionObserver(
@@ -146,9 +161,11 @@
       card.className = 'card';
       card.dataset.id = wall.id;
       card.innerHTML = `
-        <button type="button" class="thumb" aria-label="Preview ${wall.name}${wall.live ? ' (live)' : ''}">
+        <button type="button" class="thumb${wall.spatial ? ' spatial' : ''}" aria-label="Preview ${wall.name}${wall.live ? ' (live)' : ''}${wall.spatial ? ' (spatial)' : ''}">
           <canvas width="${THUMB_W}" height="${THUMB_H}"></canvas>
+          ${wall.spatial ? `<canvas class="spatial-front" width="${THUMB_W}" height="${THUMB_H}"></canvas>` : ''}
           ${wall.live ? '<span class="live-badge" aria-hidden="true">Live</span>' : ''}
+          ${wall.spatial ? '<span class="spatial-badge" aria-hidden="true">Spatial</span>' : ''}
         </button>
         <div class="meta">
           <div>
@@ -227,6 +244,7 @@
   const viewer = $('#viewer');
   const screenEl = $('#screen');
   const phoneCanvas = $('#phoneCanvas');
+  const phoneFront = $('#phoneFront');
 
   function buildDeviceSelect() {
     const sel = $('#model');
@@ -271,10 +289,12 @@
     const d = state.device;
     $('#vName').textContent = wall.name + (state.variant ? ` · Remix ${state.variant}` : '');
     $('#vCategory').textContent = wall.category;
-    // For live walls the badge already says "Live", so drop the duplicate label.
-    $('#vCategory').hidden = !!wall.live;
+    // Live and spatial walls show a badge instead of the plain category label.
+    $('#vCategory').hidden = !!(wall.live || wall.spatial);
     $('#vLive').hidden = !wall.live;
+    $('#vSpatial').hidden = !wall.spatial;
     $('#liveNote').hidden = !wall.live;
+    $('#spatialNote').hidden = !wall.spatial;
     $('#vRes').textContent = `${d.w} × ${d.h} px · exact native resolution`;
     screenEl.style.setProperty('--ar', `${d.w} / ${d.h}`);
     screenEl.classList.toggle('classic', d.h / d.w < 2);
@@ -300,6 +320,14 @@
   // Under reduced motion a live wall shows its first frame.
   function renderPhone(wall, cw, ch) {
     stopViewerLoop();
+    // Spatial walls split into two layers with the clock between them.
+    phoneFront.hidden = !wall.spatial;
+    if (wall.spatial) {
+      state.t = 0;
+      drawLayer(phoneCanvas, wall, cw, ch, state.variant, 'back');
+      drawLayer(phoneFront, wall, cw, ch, state.variant, 'front');
+      return;
+    }
     if (!wall.live || reduceMotion.matches) {
       state.t = 0;
       draw(phoneCanvas, wall, cw, ch, state.variant, 0);

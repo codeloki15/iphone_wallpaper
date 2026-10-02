@@ -6,7 +6,9 @@ iPhone model you choose. There are no image files to host.
 
 ## Features
 
-- Gallery of 40 wallpapers in 7 categories, including **Live** animated 3D wallpapers
+- Gallery of 45 wallpapers in 8 categories, including **Live** animated 3D wallpapers and
+  **Spatial** wallpapers: two depth layers with the lock-screen clock tucked between them,
+  in the style of iOS 26 Spatial Scenes
 - A spinning 3D iPhone in the hero (three.js): drag to spin, click to open the wallpaper on its screen
 - 3D tilt on gallery cards and an iOS-style depth effect in the preview, where the clock floats above the wallpaper
 - Search, plus favorites saved in your browser
@@ -48,6 +50,7 @@ Each one documents its palette order in a comment.
 - `wallpapers.js`: generators and wallpaper catalogue
 - `app.js`: gallery, viewer, device list and downloads
 - `live.js` / `live.css`: Live animated wallpapers
+- `spatial.js` / `spatial.css`: Spatial (layered depth) wallpapers
 - `tilt.js` / `tilt.css`: 3D tilt and depth effects
 - `hero3d.js` / `hero3d.css`: the 3D iPhone (loads three.js r128 from cdnjs)
 
