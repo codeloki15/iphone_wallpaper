@@ -38,7 +38,9 @@
 
   // The accent is the most vivid mid-tone color in the palette; the second
   // color is the next vivid one with a clearly different hue.
-  function fromWall(wall) {
+  // `bgLum`, when known, is the measured brightness behind the clock; it beats
+  // the palette average on wallpapers with very light and dark areas.
+  function fromWall(wall, bgLum) {
     const cols = [...new Set(wall.palette)];
     const scored = cols
       .map((c) => {
@@ -49,7 +51,7 @@
     const accent = scored[0].c;
     const second = (scored.find((x) => x !== scored[0] && hueGap(x.h, scored[0].h) > 0.06 && x.score > 0.08) || scored[1] || scored[0]).c;
     const avg = cols.reduce((sum, c) => sum + luminance(c), 0) / cols.length;
-    const darkWall = avg < 0.4;
+    const darkWall = bgLum === undefined ? avg < 0.4 : bgLum < 0.36;
     return {
       accent,
       second,
@@ -179,12 +181,18 @@
     sheen.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = sheen;
     ctx.fillRect(0, 0, size, size);
-    const k = (size * 0.56) / 24;
+    const g = size * 0.56;
+    drawGlyph(ctx, iconId, c.glyph, g, (size - g) / 2, (size - g) / 2);
+  }
+
+  // Draws just the symbol, `size` pixels square, with its top-left at (x, y).
+  function drawGlyph(ctx, iconId, color, size, x, y) {
+    const k = size / 24;
     ctx.save();
-    ctx.translate(size / 2 - 12 * k, size / 2 - 12 * k);
+    ctx.translate(x, y);
     ctx.scale(k, k);
-    ctx.fillStyle = c.glyph;
-    ctx.strokeStyle = c.glyph;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1.9;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -288,7 +296,7 @@
     });
   }
 
-  function guideText(wall, theme, style, device) {
+  function guideText(wall, theme, style, device, notes) {
     return [
       `${wall.name} theme`,
       `Accent ${theme.accent} · Second ${theme.second} · Clock ${theme.clock} · Icon style: ${style}`,
@@ -312,14 +320,16 @@
       '',
       'Opening an app from a shortcut can briefly show a Shortcuts banner. That is how iOS handles custom icons.',
       '',
+      ...(notes.length ? [...notes, ''] : []),
       `Wallpaper size: ${device.w} x ${device.h} px (${device.name}).`,
       'Icons are 512 x 512 px squares; iOS rounds the corners itself.',
     ].join('\n');
   }
 
-  // Builds the theme pack: wallpaper, 24 icons and a text guide.
-  async function buildPack({ wall, variant, t, device, style }) {
-    const theme = fromWall(wall);
+  // Builds the theme pack: wallpaper, 24 icons, any extra images (such as
+  // widget references, as { name, canvas }) and a text guide.
+  async function buildPack({ wall, variant, t, device, style, bgLum, extras = [], notes = [] }) {
+    const theme = fromWall(wall, bgLum);
     const root = `${wall.id}-theme/`;
     const files = [];
     const paper = document.createElement('canvas');
@@ -331,9 +341,12 @@
       const name = icon.label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       files.push({ name: `${root}icons/${name}.png`, data: await canvasBytes(iconCanvas(512, icon.id, style, theme)) });
     }
-    files.push({ name: `${root}How to apply.txt`, data: new TextEncoder().encode(guideText(wall, theme, style, device)) });
+    for (const extra of extras) {
+      files.push({ name: root + extra.name, data: await canvasBytes(extra.canvas) });
+    }
+    files.push({ name: `${root}How to apply.txt`, data: new TextEncoder().encode(guideText(wall, theme, style, device, notes)) });
     return zip(files);
   }
 
-  window.Theme = { fromWall, ICONS, drawIcon, iconCanvas, buildPack, luminance };
+  window.Theme = { fromWall, ICONS, drawIcon, drawGlyph, iconCanvas, buildPack, luminance };
 })();

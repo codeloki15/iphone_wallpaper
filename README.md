@@ -6,7 +6,7 @@ iPhone model you choose. There are no image files to host.
 
 ## Features
 
-- Gallery of 45 wallpapers in 8 categories, including **Live** animated 3D wallpapers and
+- Gallery of 51 wallpapers in 9 categories, including **Art** (torn paper, folded silk), **Live** animated 3D wallpapers and
   **Spatial** wallpapers: two depth layers with the lock-screen clock tucked between them,
   in the style of iOS 26 Spatial Scenes
 - A spinning 3D iPhone in the hero (three.js): drag to spin, click to open the wallpaper on its screen
@@ -14,6 +14,10 @@ iPhone model you choose. There are no image files to host.
   made from its palette, shown live on the Home Screen preview. Download it as a theme pack
   (.zip with the wallpaper, icons and steps) and follow the built-in guide to apply it with
   iOS icon tinting or custom icons via the Shortcuts app
+- **Clock faces** for the Lock Screen preview: Classic, Dial, Vertical and Words
+- **Home Screen setups**: Grid, Minimal (day headline, time sentence, weather, music and an
+  app-list widget) and Dial, built on the real iOS grid and widget sizes so they can be
+  recreated with a widget app; the theme pack includes reference images of the widgets
 - 3D tilt on gallery cards and an iOS-style depth effect in the preview, where the clock floats above the wallpaper
 - Search, plus favorites saved in your browser
 - Full-screen preview on an iPhone mockup, with lock screen (live clock) and home screen views
@@ -56,6 +60,9 @@ Each one documents its palette order in a comment.
 - `live.js` / `live.css`: Live animated wallpapers
 - `spatial.js` / `spatial.css`: Spatial (layered depth) wallpapers
 - `theme.js` / `theme.css`: matching themes, icon drawing, theme pack (.zip) and setup guide
+- `art.js`: Art wallpapers (torn paper, folded silk)
+- `faces.js`: Lock Screen clock faces
+- `setups.js` / `setups.css`: Home Screen layouts and widgets
 - `tilt.js` / `tilt.css`: 3D tilt and depth effects
 - `hero3d.js` / `hero3d.css`: the 3D iPhone (loads three.js r128 from cdnjs)
 

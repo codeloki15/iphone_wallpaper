@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="live.css">
   <link rel="stylesheet" href="spatial.css">
   <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="setups.css">
   <link rel="stylesheet" href="tilt.css">
   <link rel="stylesheet" href="hero3d.css">
 </head>
@@ -68,6 +69,7 @@
             <div class="lock" id="lockOverlay">
               <div class="lock-date" id="lockDate"></div>
               <div class="lock-time" id="lockTime"></div>
+              <div class="lock-face" id="lockFace" hidden></div>
               <div class="lock-actions"><span></span><span></span></div>
             </div>
             <div class="home" id="homeOverlay" hidden>
@@ -121,17 +123,31 @@
           <h3 id="themeTitle">Matching theme</h3>
           <p class="hint">Icons, clock and widget colors made from this wallpaper. Tap a color to copy it.</p>
           <div class="swatches" id="swatches"></div>
+          <p class="opt-label">Icon style</p>
           <div class="seg seg-3" role="group" aria-label="Icon style">
             <button type="button" class="seg-btn" data-style="color" aria-pressed="true">Color</button>
             <button type="button" class="seg-btn" data-style="light" aria-pressed="false">Light</button>
             <button type="button" class="seg-btn" data-style="dark" aria-pressed="false">Dark</button>
+          </div>
+          <p class="opt-label">Clock style</p>
+          <div class="seg seg-4" role="group" aria-label="Clock style">
+            <button type="button" class="seg-btn" data-face="classic" aria-pressed="true">Classic</button>
+            <button type="button" class="seg-btn" data-face="dial" aria-pressed="false">Dial</button>
+            <button type="button" class="seg-btn" data-face="vertical" aria-pressed="false">Vertical</button>
+            <button type="button" class="seg-btn" data-face="words" aria-pressed="false">Words</button>
+          </div>
+          <p class="opt-label">Home layout</p>
+          <div class="seg seg-3" role="group" aria-label="Home layout">
+            <button type="button" class="seg-btn" data-layout="grid" aria-pressed="true">Grid</button>
+            <button type="button" class="seg-btn" data-layout="minimal" aria-pressed="false">Minimal</button>
+            <button type="button" class="seg-btn" data-layout="dial" aria-pressed="false">Dial</button>
           </div>
           <div class="row">
             <button type="button" class="btn ghost" id="packBtn">Theme pack</button>
             <button type="button" class="btn ghost" id="guideBtn">How to apply</button>
           </div>
           <p class="status" id="packStatus" role="status" aria-live="polite"></p>
-          <p class="hint">The pack is a .zip with the wallpaper, 24 icons and these steps.</p>
+          <p class="hint">The pack is a .zip with the wallpaper, 24 icons, reference images of this layout's widgets and the steps.</p>
         </section>
       </aside>
     </div>
@@ -159,9 +175,10 @@
         </button>
       </div>
       <p class="hint">iPhones don't let websites change icons, so you apply the theme yourself. Start with the quick theme; add custom icons if you want the full look.</p>
-      <div class="seg" role="group" aria-label="Guide">
+      <div class="seg seg-3" role="group" aria-label="Guide">
         <button type="button" class="seg-btn" data-tab="quick" aria-pressed="true">Quick · 2 min</button>
         <button type="button" class="seg-btn" data-tab="icons" aria-pressed="false">Custom icons</button>
+        <button type="button" class="seg-btn" data-tab="setup" aria-pressed="false">Setup &amp; clock</button>
       </div>
       <ol class="steps" id="guideQuick">
         <li><strong>Save the wallpaper.</strong> Tap Download wallpaper and choose Save Image, so it's in Photos.</li>
@@ -177,6 +194,14 @@
         <li><strong>Give it the icon.</strong> Tap the small icon, choose Choose Photo or Choose File, pick the matching icon, type the app's name and tap Add.</li>
         <li><strong>Repeat, then tidy up.</strong> Do the same for each app you want themed. To hide an original icon, touch and hold it → Remove App → Remove from Home Screen. The app stays in the App Library.</li>
       </ol>
+      <ol class="steps" id="guideSetup" hidden>
+        <li><strong>Start with the theme.</strong> Set the wallpaper and icons first (Quick theme and Custom icons tabs).</li>
+        <li><strong>Match the icon size.</strong> <span id="guideLabels"></span></li>
+        <li><strong>Rebuild the widgets.</strong> Install a widget app that lets you design your own widgets with text, the date, weather and app shortcuts. Recreate <span id="guideWidgets"></span> using the reference images in the theme pack, with text color <span class="hex" data-key="clock"></span> and accent <span class="hex" data-key="accent"></span>. For widgets without a card, use the app's transparent background option; it uses a crop of your wallpaper.</li>
+        <li><strong>Add them.</strong> Touch and hold the Home Screen, tap Edit → Add Widget, find your widget app, pick the size, tap Add Widget, then tap the widget to choose your design.</li>
+        <li><strong>Place the icons.</strong> Drag the apps into the spots shown in the preview. Since iOS 18 you can leave empty spaces. Move other apps to another page or the App Library.</li>
+        <li><strong>The clock.</strong> iOS doesn't allow custom Lock Screen clock faces, so the Dial, Vertical and Words styles can't replace it. Get close in Customize: tap the time, then pick a font, weight and the color <span class="hex" data-key="clock"></span>. The Dial also works as a Home Screen widget; see the Dial layout.</li>
+      </ol>
       <p class="hint" id="guideIconsNote" hidden>Opening an app from a shortcut can briefly show a Shortcuts banner. That's how iOS handles custom icons; the app itself is unchanged. For matching widgets, use a widget app that lets you set colors, with <span class="hex" data-key="accent"></span> and <span class="hex" data-key="second"></span>.</p>
     </div>
   </dialog>
@@ -186,6 +211,8 @@
   <script src="spatial.js"></script>
   <script src="art.js"></script>
   <script src="theme.js"></script>
+  <script src="faces.js"></script>
+  <script src="setups.js"></script>
   <script src="app.js"></script>
   <script src="tilt.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

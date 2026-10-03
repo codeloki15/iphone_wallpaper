@@ -43,6 +43,7 @@
 #phoneFront,
 .lock-date,
 .lock-time,
+.lock-face,
 .lock-actions,
 #homeOverlay { transition: transform 0.4s ease; }
 
@@ -52,6 +53,7 @@
 #screen.depth #phoneFront,
 #screen.depth .lock-date,
 #screen.depth .lock-time,
+#screen.depth .lock-face,
 #screen.depth .lock-actions,
 #screen.depth #homeOverlay { transition: none; }
 
@@ -63,6 +65,7 @@
    a spatial wallpaper's foreground can sit between the clock and the rest. */
 #screen.depth .lock-date,
 #screen.depth .lock-time,
+#screen.depth .lock-face,
 #screen.depth .lock-actions,
 #screen.depth #homeOverlay {
   transform: translate(calc(var(--par-x, 0) * 2.4cqw), calc(var(--par-y, 0) * 2.4cqw));

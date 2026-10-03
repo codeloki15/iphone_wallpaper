@@ -34,44 +34,6 @@
   text-shadow: 0 0 1cqw rgba(0, 0, 0, 0.55), 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.45);
 }
 
-/* A 2x2 calendar widget in the widget colors. */
-.widget {
-  grid-column: span 2;
-  grid-row: span 2;
-  display: flex;
-  flex-direction: column;
-  padding: 4cqw 4.4cqw;
-  border-radius: 6cqw;
-  color: var(--w-ink, #111);
-  background: var(--w-bg, rgba(255, 255, 255, 0.82));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 0.8cqw 2.4cqw rgba(0, 0, 0, 0.2);
-  /* Stop at the icons' bottom edge, not their labels. */
-  margin-bottom: 4.5cqw;
-}
-
-.w-day {
-  font-size: 3.1cqw;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--w-accent, #ff3b30);
-}
-
-.w-date {
-  font-size: 13cqw;
-  font-weight: 300;
-  line-height: 1.05;
-  font-variant-numeric: tabular-nums;
-}
-
-.w-note {
-  margin-top: auto;
-  font-size: 2.8cqw;
-  opacity: 0.6;
-}
-
 /* ---------- panel ---------- */
 
 .theme-box {
@@ -132,6 +94,15 @@
 }
 
 .seg-3 { grid-template-columns: repeat(3, 1fr); }
+.seg-4 { grid-template-columns: repeat(4, 1fr); }
+.seg-4 .seg-btn { padding-inline: 4px; font-size: 13px; }
+
+.opt-label {
+  margin: 2px 0 -6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
 
 /* ---------- guide ---------- */
 

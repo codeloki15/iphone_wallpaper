@@ -62,6 +62,8 @@
     variant: 0,
     mode: 'lock',
     iconStyle: ['color', 'light', 'dark'].includes(store.get('pw:iconStyle')) ? store.get('pw:iconStyle') : 'color',
+    face: Faces.STYLES.includes(store.get('pw:face')) ? store.get('pw:face') : 'classic',
+    layout: Setups.LAYOUTS[store.get('pw:layout')] ? store.get('pw:layout') : 'grid',
     t: 0,
   };
 
@@ -265,30 +267,43 @@
 
   // ---------- matching theme ----------
 
-  // The preview Home Screen: a calendar widget, 16 apps and a 4-app dock.
-  // Theme.ICONS lists the dock apps first, then the grid.
+  // The preview Home Screen follows the chosen setup (see setups.js); the
+  // dock always holds the first four icons.
   const DOCK = Theme.ICONS.slice(0, 4);
-  const GRID = Theme.ICONS.slice(4, 20);
   const iconCache = new Map();
+  let currentTheme = null;
 
   function buildHome() {
+    const layout = Setups.LAYOUTS[state.layout];
     const apps = $('#apps');
-    const widget = document.createElement('div');
-    widget.className = 'widget';
-    widget.innerHTML = '<span class="w-day"></span><span class="w-date"></span><span class="w-note">No events today</span>';
-    apps.appendChild(widget);
-    GRID.forEach((icon) => {
-      const app = document.createElement('div');
-      app.className = 'app';
-      app.innerHTML = `<span class="app-icon" data-icon="${icon.id}"></span><span class="app-label">${icon.label}</span>`;
-      apps.appendChild(app);
+    apps.replaceChildren();
+    $('#homeOverlay').classList.toggle('no-labels', !layout.labels);
+    layout.items.forEach((item) => {
+      if (typeof item === 'string') {
+        const icon = Theme.ICONS.find((i) => i.id === item);
+        const app = document.createElement('div');
+        app.className = 'app';
+        app.innerHTML = `<span class="app-icon" data-icon="${icon.id}"></span><span class="app-label">${icon.label}</span>`;
+        apps.appendChild(app);
+        return;
+      }
+      const [cols, rows] = Setups.SPAN[item.size];
+      const widget = document.createElement('div');
+      widget.className = Setups.CLEAR.has(item.widget) ? 'widget' : 'widget widget-card';
+      widget.dataset.widget = item.widget;
+      widget.style.gridColumn = `span ${cols}`;
+      widget.style.gridRow = `span ${rows}`;
+      widget.innerHTML = '<canvas></canvas>';
+      apps.appendChild(widget);
     });
-    DOCK.forEach((icon) => {
-      const span = document.createElement('span');
-      span.className = 'app-icon';
-      span.dataset.icon = icon.id;
-      $('#dock').appendChild(span);
-    });
+    if (!$('#dock').children.length) {
+      DOCK.forEach((icon) => {
+        const span = document.createElement('span');
+        span.className = 'app-icon';
+        span.dataset.icon = icon.id;
+        $('#dock').appendChild(span);
+      });
+    }
   }
 
   function iconUrl(iconId, style, theme, key) {
@@ -297,23 +312,44 @@
     return iconCache.get(k);
   }
 
+  // Widgets are canvases sized to their grid cell, so they wait for layout.
+  function drawWidgets() {
+    if (!currentTheme) return;
+    const now = new Date();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    document.querySelectorAll('#homeOverlay .widget').forEach((el) => {
+      const canvas = el.querySelector('canvas');
+      const w = Math.round(el.clientWidth * dpr);
+      const h = Math.round(el.clientHeight * dpr);
+      if (!w || !h) return;
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+      Setups.drawWidget(canvas.getContext('2d'), w, h, el.dataset.widget, currentTheme, state.iconStyle, now);
+    });
+  }
+
+  function renderFace() {
+    const classic = state.face === 'classic';
+    $('#lockDate').hidden = !classic;
+    $('#lockTime').hidden = !classic;
+    $('#lockFace').hidden = classic;
+    if (!classic) Faces.render($('#lockFace'), state.face, new Date());
+  }
+
   // Re-themes everything in the preview that follows the wallpaper: icons,
-  // widget, clock color, swatches and the color codes in the guide.
+  // widgets, clock color, swatches and the color codes in the guide.
   function applyTheme(wall) {
-    const theme = Theme.fromWall(wall);
+    const theme = Theme.fromWall(wall, state.bgLum);
+    currentTheme = theme;
     const key = wall.palette.join('');
     document.querySelectorAll('#homeOverlay .app-icon').forEach((el) => {
       el.style.backgroundImage = `url(${iconUrl(el.dataset.icon, state.iconStyle, theme, key)})`;
     });
-    const home = $('#homeOverlay');
-    const dark = state.iconStyle === 'dark' || (state.iconStyle === 'color' && theme.darkWall);
-    home.style.setProperty('--w-bg', dark ? 'rgba(20,20,26,0.72)' : 'rgba(255,255,255,0.82)');
-    home.style.setProperty('--w-ink', dark ? '#ffffff' : '#111114');
-    home.style.setProperty('--w-accent', Theme.luminance(theme.accent) > 0.6 && !dark ? Walls.util.mix(theme.accent, '#000000', 0.45) : theme.accent);
     $('#lockOverlay').style.setProperty('--clock', theme.clock);
-    const now = new Date();
-    home.querySelector('.w-day').textContent = now.toLocaleDateString([], { weekday: 'long' });
-    home.querySelector('.w-date').textContent = now.getDate();
+    requestAnimationFrame(() => {
+      drawWidgets();
+      renderFace();
+    });
     const swatches = [['Accent', theme.accent], ['Second', theme.second], ['Clock', theme.clock]];
     $('#swatches').replaceChildren(...swatches.map(([label, hex]) => {
       const b = document.createElement('button');
@@ -327,6 +363,41 @@
       const hex = theme[el.dataset.key];
       el.innerHTML = `<span class="chip-color" style="background:${hex}"></span>${hex}`;
     });
+    syncGuideSetup();
+  }
+
+  // The Setup tab of the guide names the current layout's widgets.
+  function syncGuideSetup() {
+    const layout = Setups.LAYOUTS[state.layout];
+    const widgets = layout.items.filter((item) => typeof item !== 'string');
+    $('#guideWidgets').textContent = widgets.length
+      ? widgets.map((item) => `a ${item.size} "${Setups.NAMES[item.widget]}" widget`).join(' and ')
+      : 'the widgets';
+    $('#guideLabels').textContent = layout.labels
+      ? `The ${layout.name} layout uses normal icons with names, so no change is needed.`
+      : `The ${layout.name} layout uses big icons without names: touch and hold the Home Screen, tap Edit → Customize, then choose Large.`;
+  }
+
+  function setFace(face) {
+    state.face = face;
+    store.set('pw:face', face);
+    document.querySelectorAll('.seg-btn[data-face]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.face === face));
+    });
+    setMode('lock');
+    requestAnimationFrame(renderFace);
+  }
+
+  function setLayout(layout) {
+    state.layout = layout;
+    store.set('pw:layout', layout);
+    document.querySelectorAll('.seg-btn[data-layout]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.layout === layout));
+    });
+    buildHome();
+    const wall = state.visible[state.current];
+    if (wall) applyTheme(wall);
+    setMode('home');
   }
 
   function setIconStyle(style) {
@@ -368,12 +439,34 @@
     btn.textContent = 'Building…';
     status('');
     try {
+      const layout = Setups.LAYOUTS[state.layout];
+      const theme = Theme.fromWall(wall, state.bgLum);
+      const now = new Date();
+      const widgets = layout.items.filter((item) => typeof item !== 'string');
       const blob = await Theme.buildPack({
         wall,
         variant: state.variant,
         t: wall.live ? state.t : 0,
         device: state.device,
         style: state.iconStyle,
+        bgLum: state.bgLum,
+        extras: widgets.map((item) => ({
+          name: `widgets/${item.size}-${item.widget}.png`,
+          canvas: Setups.widgetCanvas(item.widget, item.size, theme, state.iconStyle, now),
+        })),
+        notes: [
+          `HOME SCREEN SETUP: ${layout.name}`,
+          layout.labels
+            ? '1. Keep normal icons with names.'
+            : '1. Touch and hold the Home Screen > Edit > Customize > Large (big icons, no names).',
+          `2. In a widget app that lets you design widgets, recreate ${widgets.map((item) => `the ${item.size} ${Setups.NAMES[item.widget]} widget`).join(' and ')}`,
+          '   using the images in the widgets folder. Use a transparent background where the image has no card.',
+          '3. Touch and hold the Home Screen > Edit > Add Widget, pick your widget app and size, then choose your design.',
+          '4. Drag your apps into place. Since iOS 18 you can leave empty spaces.',
+          '',
+          'LOCK SCREEN CLOCK',
+          `iOS doesn't allow custom clock faces. In Customize, tap the time and pick a font and the color ${theme.clock}.`,
+        ],
       });
       const filename = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-theme.zip`;
       if (await saveWithViewer(blob, filename, status, 'Saved. Open How to apply for the next steps.')) return;
@@ -405,6 +498,7 @@
     $('#guideQuick').hidden = tab !== 'quick';
     $('#guideIcons').hidden = tab !== 'icons';
     $('#guideIconsNote').hidden = tab !== 'icons';
+    $('#guideSetup').hidden = tab !== 'setup';
   }
 
   function openViewer(index) {
@@ -426,6 +520,10 @@
   function updateViewer() {
     const wall = state.visible[state.current];
     if (!wall) return;
+    if (wall.id + state.variant !== state.sampledFor) {
+      state.sampledFor = wall.id + state.variant;
+      state.bgLum = undefined;
+    }
     const d = state.device;
     $('#vName').textContent = wall.name + (state.variant ? ` · Remix ${state.variant}` : '');
     $('#vCategory').textContent = wall.category;
@@ -459,6 +557,29 @@
 
   // Static walls draw once; live walls animate while the viewer is open.
   // Under reduced motion a live wall shows its first frame.
+  // Average brightness behind the clock and top widgets (upper left two
+  // thirds of the screen), so text colors contrast with what's really there.
+  function sampleBackground(wall) {
+    try {
+      const w = phoneCanvas.width;
+      const h = phoneCanvas.height;
+      const data = phoneCanvas.getContext('2d').getImageData(Math.round(w * 0.05), Math.round(h * 0.07), Math.round(w * 0.6), Math.round(h * 0.36)).data;
+      let sum = 0;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4 * 37) {
+        sum += Theme.luminance('#' + [data[i], data[i + 1], data[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join(''));
+        n++;
+      }
+      const lum = n ? sum / n : undefined;
+      if (lum !== undefined && (state.bgLum === undefined || Math.abs(lum - state.bgLum) > 0.01)) {
+        state.bgLum = lum;
+        applyTheme(wall);
+      }
+    } catch (e) {
+      // Reading pixels can fail in unusual contexts; keep the palette guess.
+    }
+  }
+
   function renderPhone(wall, cw, ch) {
     stopViewerLoop();
     // Spatial walls split into two layers with the clock between them.
@@ -467,11 +588,13 @@
       state.t = 0;
       drawLayer(phoneCanvas, wall, cw, ch, state.variant, 'back');
       drawLayer(phoneFront, wall, cw, ch, state.variant, 'front');
+      sampleBackground(wall);
       return;
     }
     if (!wall.live || reduceMotion.matches) {
       state.t = 0;
       draw(phoneCanvas, wall, cw, ch, state.variant, 0);
+      sampleBackground(wall);
       return;
     }
     const tick = () => {
@@ -480,6 +603,7 @@
       viewerLoop = requestAnimationFrame(tick);
     };
     tick();
+    sampleBackground(wall);
   }
 
   function setMode(mode) {
@@ -489,6 +613,7 @@
     document.querySelectorAll('.seg-btn[data-mode]').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
     });
+    requestAnimationFrame(() => (mode === 'home' ? drawWidgets() : renderFace()));
   }
 
   function updateClock() {
@@ -497,6 +622,10 @@
     $('#lockTime').textContent = time;
     $('#lockDate').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     document.querySelectorAll('.mini-time').forEach((el) => { el.textContent = time; });
+    if (viewer.open) {
+      if (state.mode === 'lock' && state.face !== 'classic') renderFace();
+      if (state.mode === 'home') drawWidgets();
+    }
   }
 
   function slug(s) {
@@ -610,6 +739,8 @@
     $('#saver').addEventListener('close', closeSaver);
     document.querySelectorAll('.seg-btn[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
     document.querySelectorAll('.seg-btn[data-style]').forEach((b) => b.addEventListener('click', () => setIconStyle(b.dataset.style)));
+    document.querySelectorAll('.seg-btn[data-face]').forEach((b) => b.addEventListener('click', () => setFace(b.dataset.face)));
+    document.querySelectorAll('.seg-btn[data-layout]').forEach((b) => b.addEventListener('click', () => setLayout(b.dataset.layout)));
     $('#swatches').addEventListener('click', (e) => {
       const b = e.target.closest('.swatch');
       if (b) copyHex(b);
@@ -664,6 +795,8 @@
   buildDeviceSelect();
   buildHome();
   setIconStyle(state.iconStyle);
+  setFace(state.face);
+  setLayout(state.layout);
   bindViewer();
   setMode('lock');
   renderGrid();
