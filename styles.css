@@ -490,9 +490,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
   justify-content: space-between;
 }
 
-.lock-actions span,
-.apps span,
-.dock span {
+.lock-actions span {
   background: rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -504,14 +502,11 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
 .apps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 7cqw 6cqw;
-  padding: 18cqw 7cqw 0;
+  gap: 3.6cqw 6cqw;
+  padding: 17cqw 7cqw 0;
 }
 
 .screen.classic .apps { padding-top: 10cqw; }
-
-.apps span,
-.dock span { aspect-ratio: 1; border-radius: 23%; }
 
 .dock {
   position: absolute;

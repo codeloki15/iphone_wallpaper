@@ -10,6 +10,10 @@ iPhone model you choose. There are no image files to host.
   **Spatial** wallpapers: two depth layers with the lock-screen clock tucked between them,
   in the style of iOS 26 Spatial Scenes
 - A spinning 3D iPhone in the hero (three.js): drag to spin, click to open the wallpaper on its screen
+- **Matching theme** for every wallpaper: 24 icons in three styles, a widget and a clock color
+  made from its palette, shown live on the Home Screen preview. Download it as a theme pack
+  (.zip with the wallpaper, icons and steps) and follow the built-in guide to apply it with
+  iOS icon tinting or custom icons via the Shortcuts app
 - 3D tilt on gallery cards and an iOS-style depth effect in the preview, where the clock floats above the wallpaper
 - Search, plus favorites saved in your browser
 - Full-screen preview on an iPhone mockup, with lock screen (live clock) and home screen views
@@ -51,6 +55,7 @@ Each one documents its palette order in a comment.
 - `app.js`: gallery, viewer, device list and downloads
 - `live.js` / `live.css`: Live animated wallpapers
 - `spatial.js` / `spatial.css`: Spatial (layered depth) wallpapers
+- `theme.js` / `theme.css`: matching themes, icon drawing, theme pack (.zip) and setup guide
 - `tilt.js` / `tilt.css`: 3D tilt and depth effects
 - `hero3d.js` / `hero3d.css`: the 3D iPhone (loads three.js r128 from cdnjs)
 

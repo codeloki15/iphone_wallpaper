@@ -61,6 +61,7 @@
     current: -1,
     variant: 0,
     mode: 'lock',
+    iconStyle: ['color', 'light', 'dark'].includes(store.get('pw:iconStyle')) ? store.get('pw:iconStyle') : 'color',
     t: 0,
   };
 
@@ -262,9 +263,148 @@
     });
   }
 
-  function buildHomeIcons() {
+  // ---------- matching theme ----------
+
+  // The preview Home Screen: a calendar widget, 16 apps and a 4-app dock.
+  // Theme.ICONS lists the dock apps first, then the grid.
+  const DOCK = Theme.ICONS.slice(0, 4);
+  const GRID = Theme.ICONS.slice(4, 20);
+  const iconCache = new Map();
+
+  function buildHome() {
     const apps = $('#apps');
-    for (let i = 0; i < 20; i++) apps.appendChild(document.createElement('span'));
+    const widget = document.createElement('div');
+    widget.className = 'widget';
+    widget.innerHTML = '<span class="w-day"></span><span class="w-date"></span><span class="w-note">No events today</span>';
+    apps.appendChild(widget);
+    GRID.forEach((icon) => {
+      const app = document.createElement('div');
+      app.className = 'app';
+      app.innerHTML = `<span class="app-icon" data-icon="${icon.id}"></span><span class="app-label">${icon.label}</span>`;
+      apps.appendChild(app);
+    });
+    DOCK.forEach((icon) => {
+      const span = document.createElement('span');
+      span.className = 'app-icon';
+      span.dataset.icon = icon.id;
+      $('#dock').appendChild(span);
+    });
+  }
+
+  function iconUrl(iconId, style, theme, key) {
+    const k = `${key}|${style}|${iconId}`;
+    if (!iconCache.has(k)) iconCache.set(k, Theme.iconCanvas(128, iconId, style, theme).toDataURL());
+    return iconCache.get(k);
+  }
+
+  // Re-themes everything in the preview that follows the wallpaper: icons,
+  // widget, clock color, swatches and the color codes in the guide.
+  function applyTheme(wall) {
+    const theme = Theme.fromWall(wall);
+    const key = wall.palette.join('');
+    document.querySelectorAll('#homeOverlay .app-icon').forEach((el) => {
+      el.style.backgroundImage = `url(${iconUrl(el.dataset.icon, state.iconStyle, theme, key)})`;
+    });
+    const home = $('#homeOverlay');
+    const dark = state.iconStyle === 'dark' || (state.iconStyle === 'color' && theme.darkWall);
+    home.style.setProperty('--w-bg', dark ? 'rgba(20,20,26,0.72)' : 'rgba(255,255,255,0.82)');
+    home.style.setProperty('--w-ink', dark ? '#ffffff' : '#111114');
+    home.style.setProperty('--w-accent', Theme.luminance(theme.accent) > 0.6 && !dark ? Walls.util.mix(theme.accent, '#000000', 0.45) : theme.accent);
+    $('#lockOverlay').style.setProperty('--clock', theme.clock);
+    const now = new Date();
+    home.querySelector('.w-day').textContent = now.toLocaleDateString([], { weekday: 'long' });
+    home.querySelector('.w-date').textContent = now.getDate();
+    const swatches = [['Accent', theme.accent], ['Second', theme.second], ['Clock', theme.clock]];
+    $('#swatches').replaceChildren(...swatches.map(([label, hex]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.dataset.hex = hex;
+      b.innerHTML = `<span class="chip-color" style="background:${hex}"></span><span class="sw-label">${label}</span><span class="sw-hex">${hex}</span>`;
+      return b;
+    }));
+    document.querySelectorAll('#guide .hex').forEach((el) => {
+      const hex = theme[el.dataset.key];
+      el.innerHTML = `<span class="chip-color" style="background:${hex}"></span>${hex}`;
+    });
+  }
+
+  function setIconStyle(style) {
+    state.iconStyle = style;
+    store.set('pw:iconStyle', style);
+    document.querySelectorAll('.seg-btn[data-style]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.style === style));
+    });
+    const wall = state.visible[state.current];
+    if (wall) applyTheme(wall);
+    // Icons only show on the Home Screen, so switch to it.
+    setMode('home');
+  }
+
+  async function copyHex(button) {
+    const hex = button.dataset.hex;
+    const label = button.querySelector('.sw-hex');
+    try {
+      await navigator.clipboard.writeText(hex);
+      label.textContent = 'Copied';
+    } catch (e) {
+      // Clipboard refused: select the code so it can be copied by hand.
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    setTimeout(() => { label.textContent = hex; }, 1200);
+  }
+
+  async function downloadPack() {
+    const wall = state.visible[state.current];
+    if (!wall) return;
+    const btn = $('#packBtn');
+    const status = (text) => { $('#packStatus').textContent = text; };
+    btn.disabled = true;
+    btn.textContent = 'Building…';
+    status('');
+    try {
+      const blob = await Theme.buildPack({
+        wall,
+        variant: state.variant,
+        t: wall.live ? state.t : 0,
+        device: state.device,
+        style: state.iconStyle,
+      });
+      const filename = `${slug(wall.name)}${state.variant ? '-remix-' + state.variant : ''}-theme.zip`;
+      if (await saveWithViewer(blob, filename, status, 'Saved. Open How to apply for the next steps.')) return;
+      if (inClaudeViewer) {
+        status("Saving files isn't available here. Open the site in Safari to download the pack.");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      status('Downloaded. Open How to apply for the next steps.');
+    } catch (e) {
+      status('The pack could not be built. Try again, or pick a smaller iPhone model.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Theme pack';
+    }
+  }
+
+  function setGuideTab(tab) {
+    document.querySelectorAll('.seg-btn[data-tab]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
+    });
+    $('#guideQuick').hidden = tab !== 'quick';
+    $('#guideIcons').hidden = tab !== 'icons';
+    $('#guideIconsNote').hidden = tab !== 'icons';
   }
 
   function openViewer(index) {
@@ -300,6 +440,7 @@
     screenEl.classList.toggle('classic', d.h / d.w < 2);
     syncFavorites();
     updateClock();
+    applyTheme(wall);
     // Wait for layout so the canvas matches the on-screen size.
     requestAnimationFrame(() => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -345,7 +486,7 @@
     state.mode = mode;
     $('#lockOverlay').hidden = mode !== 'lock';
     $('#homeOverlay').hidden = mode !== 'home';
-    document.querySelectorAll('.seg-btn').forEach((b) => {
+    document.querySelectorAll('.seg-btn[data-mode]').forEach((b) => {
       b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
     });
   }
@@ -378,16 +519,16 @@
   }
 
   // Returns true if the file was handed to the viewer's save prompt.
-  async function saveWithViewer(blob, filename) {
+  async function saveWithViewer(blob, filename, status = setStatus, savedText = 'Saved. Set it in Settings → Wallpaper.') {
     const downloads = await downloadsReady;
     if (!downloads) return false;
     try {
       await downloads.save({ filename, data: blob });
-      setStatus('Saved. Set it in Settings → Wallpaper.');
+      status(savedText);
     } catch (err) {
       const code = err && err.code;
-      if (code === 'declined') setStatus('');
-      else if (code === 'rate_limited') setStatus('A save prompt is already open.');
+      if (code === 'declined') status('');
+      else if (code === 'rate_limited') status('A save prompt is already open.');
       else return false;
     }
     return true;
@@ -467,7 +608,18 @@
     });
     $('#saver').addEventListener('click', (e) => { if (e.target === $('#saver')) closeSaver(); });
     $('#saver').addEventListener('close', closeSaver);
-    document.querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+    document.querySelectorAll('.seg-btn[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+    document.querySelectorAll('.seg-btn[data-style]').forEach((b) => b.addEventListener('click', () => setIconStyle(b.dataset.style)));
+    $('#swatches').addEventListener('click', (e) => {
+      const b = e.target.closest('.swatch');
+      if (b) copyHex(b);
+    });
+    $('#packBtn').addEventListener('click', downloadPack);
+    const guide = $('#guide');
+    $('#guideBtn').addEventListener('click', () => guide.showModal());
+    $('#guideClose').addEventListener('click', () => guide.close());
+    guide.addEventListener('click', (e) => { if (e.target === guide) guide.close(); });
+    document.querySelectorAll('.seg-btn[data-tab]').forEach((b) => b.addEventListener('click', () => setGuideTab(b.dataset.tab)));
 
     viewer.addEventListener('close', () => {
       stopViewerLoop();
@@ -510,7 +662,8 @@
   buildChips();
   buildCards();
   buildDeviceSelect();
-  buildHomeIcons();
+  buildHome();
+  setIconStyle(state.iconStyle);
   bindViewer();
   setMode('lock');
   renderGrid();

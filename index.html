@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="live.css">
   <link rel="stylesheet" href="spatial.css">
+  <link rel="stylesheet" href="theme.css">
   <link rel="stylesheet" href="tilt.css">
   <link rel="stylesheet" href="hero3d.css">
 </head>
@@ -30,7 +31,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Free · No sign-up · Pixel-perfect</p>
         <h1>Wallpapers made for <span class="grad">your iPhone.</span></h1>
-        <p class="lede">Every design is rendered on the fly at your screen's exact resolution. Preview it on the lock screen, remix it into something new, and download.</p>
+        <p class="lede">Every design is rendered on the fly at your screen's exact resolution, with a matching icon theme. Preview it on the lock screen, remix it into something new, and download.</p>
         <div class="hero-cta">
           <a href="#gallery" class="btn primary">Browse wallpapers</a>
           <button type="button" class="btn ghost" id="surprise">Surprise me</button>
@@ -71,7 +72,7 @@
             </div>
             <div class="home" id="homeOverlay" hidden>
               <div class="apps" id="apps"></div>
-              <div class="dock"><span></span><span></span><span></span><span></span></div>
+              <div class="dock" id="dock"></div>
             </div>
             <div class="home-bar"></div>
           </div>
@@ -115,6 +116,23 @@
         <p class="hint" id="liveNote" hidden>Live wallpapers download as a still of the current frame.</p>
         <p class="hint" id="spatialNote" hidden>Downloads as one image. On iOS 26, tap the Spatial Scene button while editing your Lock Screen to bring back the depth.</p>
         <p class="hint">Saves a PNG at your phone's exact resolution. On iPhone, choose Save Image to add it to Photos, then set it in Settings → Wallpaper.</p>
+
+        <section class="theme-box" aria-labelledby="themeTitle">
+          <h3 id="themeTitle">Matching theme</h3>
+          <p class="hint">Icons, clock and widget colors made from this wallpaper. Tap a color to copy it.</p>
+          <div class="swatches" id="swatches"></div>
+          <div class="seg seg-3" role="group" aria-label="Icon style">
+            <button type="button" class="seg-btn" data-style="color" aria-pressed="true">Color</button>
+            <button type="button" class="seg-btn" data-style="light" aria-pressed="false">Light</button>
+            <button type="button" class="seg-btn" data-style="dark" aria-pressed="false">Dark</button>
+          </div>
+          <div class="row">
+            <button type="button" class="btn ghost" id="packBtn">Theme pack</button>
+            <button type="button" class="btn ghost" id="guideBtn">How to apply</button>
+          </div>
+          <p class="status" id="packStatus" role="status" aria-live="polite"></p>
+          <p class="hint">The pack is a .zip with the wallpaper, 24 icons and these steps.</p>
+        </section>
       </aside>
     </div>
 
@@ -132,9 +150,41 @@
     </div>
   </dialog>
 
+  <dialog class="guide" id="guide" aria-labelledby="guideTitle">
+    <div class="guide-card">
+      <div class="guide-top">
+        <h3 id="guideTitle">Apply this theme on your iPhone</h3>
+        <button type="button" class="icon-btn" id="guideClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p class="hint">iPhones don't let websites change icons, so you apply the theme yourself. Start with the quick theme; add custom icons if you want the full look.</p>
+      <div class="seg" role="group" aria-label="Guide">
+        <button type="button" class="seg-btn" data-tab="quick" aria-pressed="true">Quick · 2 min</button>
+        <button type="button" class="seg-btn" data-tab="icons" aria-pressed="false">Custom icons</button>
+      </div>
+      <ol class="steps" id="guideQuick">
+        <li><strong>Save the wallpaper.</strong> Tap Download wallpaper and choose Save Image, so it's in Photos.</li>
+        <li><strong>Set it.</strong> Open Settings → Wallpaper → Add New Wallpaper → Photos. Pick the image, tap Add, then Set as Wallpaper Pair.</li>
+        <li><strong>Color the clock.</strong> Touch and hold the Lock Screen, tap Customize → Lock Screen, tap the time and set its color to <span class="hex" data-key="clock"></span>. Tap the color wheel and use the Sliders tab to type the code.</li>
+        <li><strong>Tint the app icons</strong> (iOS 18 or later). Touch and hold an empty spot on the Home Screen, tap Edit → Customize and choose Tinted. Pick <span class="hex" data-key="accent"></span> from the wallpaper with the color picker, or match it with the sliders.</li>
+      </ol>
+      <ol class="steps" id="guideIcons" hidden>
+        <li><strong>Get the icons.</strong> Tap Theme pack and save the .zip to Files. In Files, tap it to unzip a folder with the wallpaper and 24 icons.</li>
+        <li><strong>Put the icons in Photos</strong> (optional, easier to pick). In the icons folder tap ⋯ → Select, select them all, then Share → Save Images.</li>
+        <li><strong>Make a shortcut.</strong> Open Shortcuts, tap +, tap Add Action, search for Open App and add it. Tap App and choose the app, for example Messages.</li>
+        <li><strong>Add it to the Home Screen.</strong> Tap the menu next to the shortcut's name at the top and choose Add to Home Screen.</li>
+        <li><strong>Give it the icon.</strong> Tap the small icon, choose Choose Photo or Choose File, pick the matching icon, type the app's name and tap Add.</li>
+        <li><strong>Repeat, then tidy up.</strong> Do the same for each app you want themed. To hide an original icon, touch and hold it → Remove App → Remove from Home Screen. The app stays in the App Library.</li>
+      </ol>
+      <p class="hint" id="guideIconsNote" hidden>Opening an app from a shortcut can briefly show a Shortcuts banner. That's how iOS handles custom icons; the app itself is unchanged. For matching widgets, use a widget app that lets you set colors, with <span class="hex" data-key="accent"></span> and <span class="hex" data-key="second"></span>.</p>
+    </div>
+  </dialog>
+
   <script src="wallpapers.js"></script>
   <script src="live.js"></script>
   <script src="spatial.js"></script>
+  <script src="theme.js"></script>
   <script src="app.js"></script>
   <script src="tilt.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

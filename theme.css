@@ -1,0 +1,194 @@
+/* Matching theme: themed Home Screen preview, theme panel and setup guide. */
+
+/* ---------- preview ---------- */
+
+.lock-date,
+.lock-time { color: var(--clock, #fff); }
+
+.app {
+  display: grid;
+  justify-items: center;
+  gap: 1.3cqw;
+  min-width: 0;
+}
+
+.app-icon {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 23%;
+  background: rgba(255, 255, 255, 0.22) center / cover no-repeat;
+  box-shadow: 0 0.8cqw 2.4cqw rgba(0, 0, 0, 0.2);
+}
+
+.app-label {
+  max-width: 125%;
+  overflow: hidden;
+  font-size: 2.7cqw;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #fff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Strong enough to read over light skies, as on iOS. */
+  text-shadow: 0 0 1cqw rgba(0, 0, 0, 0.55), 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.45);
+}
+
+/* A 2x2 calendar widget in the widget colors. */
+.widget {
+  grid-column: span 2;
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  padding: 4cqw 4.4cqw;
+  border-radius: 6cqw;
+  color: var(--w-ink, #111);
+  background: var(--w-bg, rgba(255, 255, 255, 0.82));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0.8cqw 2.4cqw rgba(0, 0, 0, 0.2);
+  /* Stop at the icons' bottom edge, not their labels. */
+  margin-bottom: 4.5cqw;
+}
+
+.w-day {
+  font-size: 3.1cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--w-accent, #ff3b30);
+}
+
+.w-date {
+  font-size: 13cqw;
+  font-weight: 300;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.w-note {
+  margin-top: auto;
+  font-size: 2.8cqw;
+  opacity: 0.6;
+}
+
+/* ---------- panel ---------- */
+
+.theme-box {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.theme-box h3 { margin: 0; font-size: 16px; }
+.theme-box .hint,
+.theme-box .seg,
+.theme-box .row,
+.theme-box .status { margin: 0; }
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.swatch {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.swatch:focus-visible { outline: 2px solid var(--accent-3); outline-offset: 2px; }
+
+.swatch .chip-color {
+  width: 100%;
+  height: 22px;
+  margin-bottom: 4px;
+  border-radius: 7px;
+}
+
+.sw-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+
+.sw-hex {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.chip-color {
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.seg-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ---------- guide ---------- */
+
+.guide[open] {
+  display: grid;
+  place-items: center;
+  padding: 24px var(--gutter);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.guide-card {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.guide-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guide-top h3 { margin: 0; font-size: 19px; text-wrap: balance; }
+.guide-card .hint,
+.guide-card .seg { margin: 0; }
+
+.steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.steps li::marker { font-weight: 700; color: var(--muted); }
+
+.hex {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hex .chip-color { width: 10px; height: 10px; border-radius: 3px; }
