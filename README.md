@@ -6,17 +6,19 @@ iPhone model you choose. There are no image files to host.
 
 ## Features
 
-- Gallery of 51 wallpapers in 9 categories, including **Art** (torn paper, folded silk), **Live** animated 3D wallpapers and
+- **Complete looks**: one-tap presets (such as Black Vision) that set wallpaper, icons, clock and layout together
+- Gallery of 56 wallpapers in 9 categories, including **Art** (torn paper, diagonal tears, folded silk, doodles), **Live** animated 3D wallpapers and
   **Spatial** wallpapers: two depth layers with the lock-screen clock tucked between them,
   in the style of iOS 26 Spatial Scenes
 - A spinning 3D iPhone in the hero (three.js): drag to spin, click to open the wallpaper on its screen
-- **Matching theme** for every wallpaper: 24 icons in three styles, a widget and a clock color
+- **Matching theme** for every wallpaper: 24 icons in four styles (Color, Light, Dark, Mono), a widget and a clock color
   made from its palette, shown live on the Home Screen preview. Download it as a theme pack
   (.zip with the wallpaper, icons and steps) and follow the built-in guide to apply it with
   iOS icon tinting or custom icons via the Shortcuts app
-- **Clock faces** for the Lock Screen preview: Classic, Dial, Vertical and Words
+- **Clock faces** for the Lock Screen preview: Classic, Dial, Vertical and Words, plus optional
+  Lock Screen widgets (music waveform and a handwritten signature you can personalize)
 - **Home Screen setups**: Grid, Minimal (day headline, time sentence, weather, music and an
-  app-list widget) and Dial, built on the real iOS grid and widget sizes so they can be
+  app-list widget), Diagonal (outlined widgets and icons stepping along a tear) and Dial, built on the real iOS grid and widget sizes so they can be
   recreated with a widget app; the theme pack includes reference images of the widgets
 - 3D tilt on gallery cards and an iOS-style depth effect in the preview, where the clock floats above the wallpaper
 - Search, plus favorites saved in your browser

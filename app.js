@@ -61,7 +61,9 @@
     current: -1,
     variant: 0,
     mode: 'lock',
-    iconStyle: ['color', 'light', 'dark'].includes(store.get('pw:iconStyle')) ? store.get('pw:iconStyle') : 'color',
+    iconStyle: ['color', 'light', 'dark', 'mono'].includes(store.get('pw:iconStyle')) ? store.get('pw:iconStyle') : 'color',
+    lockWidgets: store.get('pw:lockWidgets', false) === true,
+    signature: typeof store.get('pw:signature') === 'string' ? store.get('pw:signature') : '',
     face: Faces.STYLES.includes(store.get('pw:face')) ? store.get('pw:face') : 'classic',
     layout: Setups.LAYOUTS[store.get('pw:layout')] ? store.get('pw:layout') : 'grid',
     t: 0,
@@ -279,6 +281,10 @@
     apps.replaceChildren();
     $('#homeOverlay').classList.toggle('no-labels', !layout.labels);
     layout.items.forEach((item) => {
+      if (item === null) {
+        apps.appendChild(document.createElement('div'));
+        return;
+      }
       if (typeof item === 'string') {
         const icon = Theme.ICONS.find((i) => i.id === item);
         const app = document.createElement('div');
@@ -334,6 +340,97 @@
     $('#lockTime').hidden = !classic;
     $('#lockFace').hidden = classic;
     if (!classic) Faces.render($('#lockFace'), state.face, new Date());
+    renderLockWidgets();
+  }
+
+  // Lock Screen widgets sit under the Classic clock, as on iOS: a music
+  // waveform and a handwritten signature.
+  function renderLockWidgets() {
+    const show = state.lockWidgets && state.face === 'classic';
+    $('#lockWidgets').hidden = !show;
+    if (!show) return;
+    const wall = state.visible[state.current];
+    const script = $('#lwScript');
+    script.textContent = state.signature || (wall ? wall.name : 'Pocket Walls');
+    // Shrink long signatures to fit their widget instead of cutting them off.
+    script.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(script).fontSize);
+    const min = size * 0.5;
+    while (script.scrollWidth > script.clientWidth + 1 && size > min) {
+      size *= 0.92;
+      script.style.fontSize = `${size}px`;
+    }
+    $('#lwSub').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const canvas = $('#lwWave');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    const w = Math.round(canvas.clientWidth * dpr);
+    const h = Math.round(canvas.clientHeight * dpr);
+    if (!w || !h) return;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    // Bars from a seed, so each wallpaper keeps the same waveform.
+    const rand = Walls.util.mulberry32(wall ? wall.seed : 7);
+    const bars = 46;
+    const bw = w / bars;
+    ctx.fillStyle = getComputedStyle($('#lockWidgets')).color;
+    for (let i = 0; i < bars; i++) {
+      const env = Math.sin((i / bars) * Math.PI) * 0.6 + 0.4;
+      const bh = Math.max(h * 0.08, h * env * (0.25 + rand() * 0.75));
+      ctx.globalAlpha = 0.55 + rand() * 0.45;
+      ctx.fillRect(i * bw + bw * 0.2, (h - bh) / 2, bw * 0.6, bh);
+    }
+  }
+
+  // ---------- complete looks ----------
+
+  const LOOKS = [
+    { name: 'Black Vision', wall: 'torn-mono', iconStyle: 'mono', face: 'classic', lockWidgets: true, layout: 'diagonal', signature: 'Black Vision' },
+    { name: 'Terracotta Day', wall: 'torn-terracotta', iconStyle: 'color', face: 'vertical', lockWidgets: false, layout: 'minimal' },
+    { name: 'Doodle Split', wall: 'doodle-panel', iconStyle: 'mono', face: 'vertical', lockWidgets: false, layout: 'dial' },
+    { name: 'Rose Words', wall: 'silk-rose', iconStyle: 'light', face: 'words', lockWidgets: false, layout: 'minimal' },
+    { name: 'Graphite Dial', wall: 'torn-graphite', iconStyle: 'dark', face: 'dial', lockWidgets: false, layout: 'dial' },
+    { name: 'Lunar Depth', wall: 'lunar-peak', iconStyle: 'dark', face: 'classic', lockWidgets: true, layout: 'grid', signature: 'Moonlight' },
+  ];
+  const FACE_NAMES = { classic: 'Classic', dial: 'Dial', vertical: 'Vertical', words: 'Words' };
+
+  function buildLooks() {
+    const row = $('#looksRow');
+    LOOKS.forEach((look) => {
+      const wall = walls.find((w) => w.id === look.wall);
+      if (!wall) return;
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'look';
+      card.innerHTML = `
+        <canvas width="${LIVE_THUMB_W}" height="${LIVE_THUMB_H}"></canvas>
+        <span class="look-meta">
+          <strong>${look.name}</strong>
+          <span>${look.iconStyle[0].toUpperCase() + look.iconStyle.slice(1)} icons · ${FACE_NAMES[look.face]} clock · ${Setups.LAYOUTS[look.layout].name}</span>
+        </span>`;
+      card.addEventListener('click', () => applyLook(look));
+      row.appendChild(card);
+      draw(card.querySelector('canvas'), wall, LIVE_THUMB_W, LIVE_THUMB_H, 0);
+    });
+  }
+
+  function applyLook(look) {
+    state.category = 'All';
+    state.query = '';
+    $('#search').value = '';
+    renderGrid();
+    state.lockWidgets = look.lockWidgets;
+    store.set('pw:lockWidgets', look.lockWidgets);
+    $('#lockWidgetsToggle').checked = look.lockWidgets;
+    if (look.signature !== undefined) {
+      state.signature = look.signature;
+      store.set('pw:signature', look.signature);
+      $('#sigInput').value = look.signature;
+    }
+    setIconStyle(look.iconStyle);
+    setFace(look.face);
+    openViewer(state.visible.findIndex((w) => w.id === look.wall));
+    setLayout(look.layout);
   }
 
   // Re-themes everything in the preview that follows the wallpaper: icons,
@@ -369,7 +466,7 @@
   // The Setup tab of the guide names the current layout's widgets.
   function syncGuideSetup() {
     const layout = Setups.LAYOUTS[state.layout];
-    const widgets = layout.items.filter((item) => typeof item !== 'string');
+    const widgets = layout.items.filter((item) => item && typeof item === 'object');
     $('#guideWidgets').textContent = widgets.length
       ? widgets.map((item) => `a ${item.size} "${Setups.NAMES[item.widget]}" widget`).join(' and ')
       : 'the widgets';
@@ -442,7 +539,7 @@
       const layout = Setups.LAYOUTS[state.layout];
       const theme = Theme.fromWall(wall, state.bgLum);
       const now = new Date();
-      const widgets = layout.items.filter((item) => typeof item !== 'string');
+      const widgets = layout.items.filter((item) => item && typeof item === 'object');
       const blob = await Theme.buildPack({
         wall,
         variant: state.variant,
@@ -741,6 +838,18 @@
     document.querySelectorAll('.seg-btn[data-style]').forEach((b) => b.addEventListener('click', () => setIconStyle(b.dataset.style)));
     document.querySelectorAll('.seg-btn[data-face]').forEach((b) => b.addEventListener('click', () => setFace(b.dataset.face)));
     document.querySelectorAll('.seg-btn[data-layout]').forEach((b) => b.addEventListener('click', () => setLayout(b.dataset.layout)));
+    $('#lockWidgetsToggle').addEventListener('change', (e) => {
+      state.lockWidgets = e.target.checked;
+      store.set('pw:lockWidgets', state.lockWidgets);
+      if (state.lockWidgets && state.face !== 'classic') setFace('classic');
+      else setMode('lock');
+      requestAnimationFrame(renderLockWidgets);
+    });
+    $('#sigInput').addEventListener('input', (e) => {
+      state.signature = e.target.value.trim();
+      store.set('pw:signature', state.signature);
+      renderLockWidgets();
+    });
     $('#swatches').addEventListener('click', (e) => {
       const b = e.target.closest('.swatch');
       if (b) copyHex(b);
@@ -794,6 +903,9 @@
   buildCards();
   buildDeviceSelect();
   buildHome();
+  buildLooks();
+  $('#lockWidgetsToggle').checked = state.lockWidgets;
+  $('#sigInput').value = state.signature;
   setIconStyle(state.iconStyle);
   setFace(state.face);
   setLayout(state.layout);

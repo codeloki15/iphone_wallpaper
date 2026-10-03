@@ -69,6 +69,9 @@
         sheen: 0.35,
       };
     }
+    if (style === 'mono') {
+      return { bg: ['#222225', '#050506'], glyph: '#ffffff', sheen: 0.1 };
+    }
     if (style === 'dark') {
       return {
         bg: ['#18181d', mix(accent, '#000000', 0.78)],

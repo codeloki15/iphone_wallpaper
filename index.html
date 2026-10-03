@@ -7,6 +7,7 @@
   <meta name="description" content="Free iPhone wallpapers, rendered at your device's exact resolution. Preview on the lock screen, remix, and download.">
   <meta name="theme-color" content="#0b0b10">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238338ec'/%3E%3Cstop offset='1' stop-color='%23ff006e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='8' y='2' width='16' height='28' rx='5' fill='url(%23g)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mrs+Saint+Delafield&display=swap">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="live.css">
   <link rel="stylesheet" href="spatial.css">
@@ -41,6 +42,14 @@
       <div class="hero-phones" id="heroPhones" aria-hidden="true"></div>
     </section>
 
+    <section class="looks" aria-labelledby="looksTitle">
+      <div class="looks-head">
+        <h2 id="looksTitle">Complete looks</h2>
+        <p>Wallpaper, icons, clock and Home Screen layout, styled together. Tap one to try it.</p>
+      </div>
+      <div class="looks-row" id="looksRow"></div>
+    </section>
+
     <section id="gallery" class="gallery">
       <div class="chips" id="chips" role="tablist" aria-label="Categories"></div>
       <div class="grid" id="grid"></div>
@@ -70,6 +79,16 @@
               <div class="lock-date" id="lockDate"></div>
               <div class="lock-time" id="lockTime"></div>
               <div class="lock-face" id="lockFace" hidden></div>
+              <div class="lock-widgets" id="lockWidgets" hidden>
+                <div class="lw lw-music">
+                  <span class="lw-title">♫ Now Playing</span>
+                  <canvas class="lw-wave" id="lwWave"></canvas>
+                </div>
+                <div class="lw lw-sign">
+                  <span class="lw-script" id="lwScript"></span>
+                  <span class="lw-sub" id="lwSub"></span>
+                </div>
+              </div>
               <div class="lock-actions"><span></span><span></span></div>
             </div>
             <div class="home" id="homeOverlay" hidden>
@@ -124,10 +143,11 @@
           <p class="hint">Icons, clock and widget colors made from this wallpaper. Tap a color to copy it.</p>
           <div class="swatches" id="swatches"></div>
           <p class="opt-label">Icon style</p>
-          <div class="seg seg-3" role="group" aria-label="Icon style">
+          <div class="seg seg-4" role="group" aria-label="Icon style">
             <button type="button" class="seg-btn" data-style="color" aria-pressed="true">Color</button>
             <button type="button" class="seg-btn" data-style="light" aria-pressed="false">Light</button>
             <button type="button" class="seg-btn" data-style="dark" aria-pressed="false">Dark</button>
+            <button type="button" class="seg-btn" data-style="mono" aria-pressed="false">Mono</button>
           </div>
           <p class="opt-label">Clock style</p>
           <div class="seg seg-4" role="group" aria-label="Clock style">
@@ -136,10 +156,19 @@
             <button type="button" class="seg-btn" data-face="vertical" aria-pressed="false">Vertical</button>
             <button type="button" class="seg-btn" data-face="words" aria-pressed="false">Words</button>
           </div>
+          <label class="check">
+            <input type="checkbox" id="lockWidgetsToggle">
+            <span>Lock Screen widgets <small>(Classic clock)</small></span>
+          </label>
+          <label class="field" id="sigField">
+            <span>Signature text</span>
+            <input type="text" id="sigInput" maxlength="24" placeholder="Your name or a word" autocomplete="off">
+          </label>
           <p class="opt-label">Home layout</p>
-          <div class="seg seg-3" role="group" aria-label="Home layout">
+          <div class="seg seg-4" role="group" aria-label="Home layout">
             <button type="button" class="seg-btn" data-layout="grid" aria-pressed="true">Grid</button>
             <button type="button" class="seg-btn" data-layout="minimal" aria-pressed="false">Minimal</button>
+            <button type="button" class="seg-btn" data-layout="diagonal" aria-pressed="false">Diagonal</button>
             <button type="button" class="seg-btn" data-layout="dial" aria-pressed="false">Dial</button>
           </div>
           <div class="row">
@@ -200,6 +229,7 @@
         <li><strong>Rebuild the widgets.</strong> Install a widget app that lets you design your own widgets with text, the date, weather and app shortcuts. Recreate <span id="guideWidgets"></span> using the reference images in the theme pack, with text color <span class="hex" data-key="clock"></span> and accent <span class="hex" data-key="accent"></span>. For widgets without a card, use the app's transparent background option; it uses a crop of your wallpaper.</li>
         <li><strong>Add them.</strong> Touch and hold the Home Screen, tap Edit → Add Widget, find your widget app, pick the size, tap Add Widget, then tap the widget to choose your design.</li>
         <li><strong>Place the icons.</strong> Drag the apps into the spots shown in the preview. Since iOS 18 you can leave empty spaces. Move other apps to another page or the App Library.</li>
+        <li><strong>Lock Screen widgets.</strong> Touch and hold the Lock Screen, tap Customize → Lock Screen, then tap the area below the time to add widgets. For the music waveform and the signature, use widget apps that offer Lock Screen widgets (a music widget, and a custom text or image widget). iOS shows Lock Screen widgets in one color, which suits this look.</li>
         <li><strong>The clock.</strong> iOS doesn't allow custom Lock Screen clock faces, so the Dial, Vertical and Words styles can't replace it. Get close in Customize: tap the time, then pick a font, weight and the color <span class="hex" data-key="clock"></span>. The Dial also works as a Home Screen widget; see the Dial layout.</li>
       </ol>
       <p class="hint" id="guideIconsNote" hidden>Opening an app from a shortcut can briefly show a Shortcuts banner. That's how iOS handles custom icons; the app itself is unchanged. For matching widgets, use a widget app that lets you set colors, with <span class="hex" data-key="accent"></span> and <span class="hex" data-key="second"></span>.</p>

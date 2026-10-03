@@ -163,3 +163,28 @@
 }
 
 .hex .chip-color { width: 10px; height: 10px; border-radius: 3px; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.check input { width: 18px; height: 18px; accent-color: var(--accent-1); }
+.check small { font-weight: 500; color: var(--muted); }
+
+.theme-box .field { margin: 0; }
+
+.field input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+}

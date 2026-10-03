@@ -32,6 +32,19 @@
         { widget: 'applist', size: 'medium' },
       ],
     },
+    // Black Vision: outlined widgets on the dark half, icons stepping down
+    // along a diagonal tear. `null` leaves a grid cell empty.
+    diagonal: {
+      name: 'Diagonal',
+      labels: false,
+      items: [
+        { widget: 'sentence', size: 'medium' },
+        { widget: 'bignum', size: 'small' },
+        null, 'chat',
+        'social', 'video',
+        null, 'audio', 'store', 'camera',
+      ],
+    },
     dial: {
       name: 'Dial',
       labels: false,
@@ -54,10 +67,14 @@
     dial: 'Dial clock',
     day: 'Day headline',
     applist: 'App list',
+    sentence: 'Day sentence',
+    bignum: 'Big date',
   };
   const APPLIST = ['browser', 'social', 'store', 'messages', 'photos', 'settings'];
-  // Transparent widgets sit straight on the wallpaper.
-  const CLEAR = new Set(['day', 'applist']);
+  // Transparent widgets sit straight on the wallpaper; outlined ones get a
+  // hairline border and the faintest fill.
+  const CLEAR = new Set(['day', 'applist', 'sentence', 'bignum']);
+  const OUTLINE = new Set(['sentence', 'bignum']);
 
   function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
@@ -71,7 +88,7 @@
 
   // Colors for a widget card, following the icon style and wallpaper.
   function palette(theme, style) {
-    const dark = style === 'dark' || (style === 'color' && theme.darkWall);
+    const dark = style === 'dark' || style === 'mono' || (style === 'color' && theme.darkWall);
     const accent = Theme.luminance(theme.accent) > 0.6 && !dark ? mix(theme.accent, '#000000', 0.45) : theme.accent;
     return {
       card: dark ? 'rgba(20,20,26,0.78)' : 'rgba(255,255,255,0.86)',
@@ -181,6 +198,46 @@
       ctx.textAlign = 'left';
     },
 
+    // Sample temperature and battery: a widget app shows your real ones.
+    sentence(ctx, w, h, c, theme, style, now) {
+      const pad = w * 0.07;
+      ctx.fillStyle = c.clear;
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = `700 ${w * 0.085}px ${FONT}`;
+      ctx.fillText(`It's ${weekday(now)}.`, pad, pad + w * 0.085);
+      ctx.font = `700 ${w * 0.046}px ${FONT}`;
+      spaced(ctx, month(now).toUpperCase(), pad, pad + w * 0.15, w * 0.004);
+      ctx.font = `500 ${w * 0.027}px ${FONT}`;
+      ctx.globalAlpha = 0.8;
+      ctx.fillText('·  Temperature is 24°C', pad, h - pad);
+      ctx.textAlign = 'right';
+      ctx.fillText('Battery · 80%', w - pad, h - pad);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
+    },
+
+    bignum(ctx, w, h, c, theme, style, now) {
+      const pad = w * 0.1;
+      ctx.fillStyle = c.clear;
+      ctx.textBaseline = 'top';
+      ctx.font = `700 ${w * 0.075}px ${FONT}`;
+      ctx.fillText(weekday(now).toUpperCase(), pad, pad);
+      ctx.fillText(month(now).toUpperCase(), pad + w * 0.22, pad + w * 0.08);
+      ctx.font = `700 ${w * 0.065}px ${FONT}`;
+      ctx.fillText('WEATHER', pad, pad + w * 0.17);
+      ctx.font = `500 ${w * 0.045}px ${FONT}`;
+      ctx.globalAlpha = 0.75;
+      ctx.fillText('Clear sky this evening', pad, pad + w * 0.26);
+      ctx.fillText('at 24°C', pad, pad + w * 0.31);
+      ctx.globalAlpha = 0.6;
+      ctx.font = `300 ${w * 0.09}px ${FONT}`;
+      ctx.fillText('↓', w - pad - w * 0.08, pad + w * 0.25);
+      ctx.globalAlpha = 1;
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = `200 ${w * 0.42}px ${FONT}`;
+      ctx.fillText(String(now.getDate()), pad - w * 0.02, h - pad * 0.9);
+    },
+
     applist(ctx, w, h, c, theme, style) {
       const pad = w * 0.06;
       const size = h * 0.2;
@@ -229,6 +286,14 @@
       roundRect(ctx, 0, 0, w, h, Math.min(w, h) * 0.14);
       ctx.fillStyle = c.card;
       ctx.fill();
+    } else if (OUTLINE.has(kind)) {
+      const lw = Math.max(1, w * 0.004);
+      roundRect(ctx, lw / 2, lw / 2, w - lw, h - lw, Math.min(w, h) * 0.14);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fill();
+      ctx.strokeStyle = Walls.util.rgba(c.clear, 0.22);
+      ctx.lineWidth = lw;
+      ctx.stroke();
     }
     ctx.save();
     DRAW[kind](ctx, w, h, c, theme, style, now);
