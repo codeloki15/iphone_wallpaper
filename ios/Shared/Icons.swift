@@ -31,7 +31,7 @@ enum Glyphs {
 
     static let ops: [String: [Op]] = [
         "phone": [.fill("M7.2 3.8l2.3-.3 1.6 4.1-1.9 1.5a11.5 11.5 0 0 0 5.7 5.7l1.5-1.9 4.1 1.6-.3 2.3a2.2 2.2 0 0 1-2.4 1.9C10.6 18.2 5.8 13.4 5.3 6.2a2.2 2.2 0 0 1 1.9-2.4z")],
-        "messages": [.fill("M12 4c5 0 9 3.1 9 7s-4 7-9 7c-1 0-2-.1-2.9-.4L5 19.5l1.2-3.4C4.2 14.8 3 13 3 11c0-3.9 4-7 9-7z")],
+        "messages": [.fill("M12 4c5 0 9 3.1 9 7c0 3.9-4 7-9 7c-1 0-2-.1-2.9-.4L5 19.5l1.2-3.4C4.2 14.8 3 13 3 11c0-3.9 4-7 9-7z")],
         "browser": [.circle(12, 12, 9, filled: false), .fill("M15.8 8.2l-2.4 5.2-5.2 2.4 2.4-5.2z")],
         "music": [.stroke("M9 17.5V6l10-2v11.5"), .circle(6.5, 17.5, 2.5, filled: true), .circle(16.5, 15.5, 2.5, filled: true)],
         "mail": [.stroke("M5 6h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 6z"), .stroke("M4 7.2l8 5.8 8-5.8")],
@@ -166,7 +166,7 @@ enum IconRenderer {
     }
 }
 
-/// A small SVG path parser: M L H V C Q A Z, absolute and relative.
+/// A small SVG path parser: M L H V C S Q A Z, absolute and relative.
 enum SVGPath {
     private enum Token {
         case command(Character)
@@ -180,6 +180,8 @@ enum SVGPath {
         var current = CGPoint.zero
         var start = CGPoint.zero
         var command: Character = "M"
+        // The previous cubic's second control point, for S (smooth) curves.
+        var lastC2: CGPoint?
 
         func number() -> Double {
             guard i < tokens.count, case .number(let v) = tokens[i] else { return 0 }
@@ -208,6 +210,8 @@ enum SVGPath {
                 continue
             }
             let relative = command.isLowercase
+            let prevC2 = lastC2
+            lastC2 = nil
             let ox: Double = relative ? Double(current.x) : 0
             let oy: Double = relative ? Double(current.y) : 0
             switch command {
@@ -233,6 +237,15 @@ enum SVGPath {
                 let c2 = CGPoint(x: ox + number(), y: oy + number())
                 let p = CGPoint(x: ox + number(), y: oy + number())
                 path.addCurve(to: p, control1: c1, control2: c2)
+                lastC2 = c2
+                current = p
+            case "S", "s":
+                // The first control point mirrors the previous curve's second.
+                let c1 = prevC2.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
+                let c2 = CGPoint(x: ox + number(), y: oy + number())
+                let p = CGPoint(x: ox + number(), y: oy + number())
+                path.addCurve(to: p, control1: c1, control2: c2)
+                lastC2 = c2
                 current = p
             case "Q", "q":
                 let c1 = CGPoint(x: ox + number(), y: oy + number())
@@ -261,7 +274,7 @@ enum SVGPath {
         var i = 0
         while i < chars.count {
             let c = chars[i]
-            if "MmLlHhVvCcQqAaZz".contains(c) {
+            if "MmLlHhVvCcSsQqAaZz".contains(c) {
                 out.append(.command(c))
                 i += 1
             } else if c == "-" || c == "+" || c == "." || c.isNumber {

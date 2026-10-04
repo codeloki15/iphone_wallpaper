@@ -18,11 +18,15 @@ struct DetailView: View {
     @State private var luminance: Double?
     @State private var status: String?
     @State private var busy = false
+    // .task runs again after returning from the setup guide; only pick the
+    // starting icon style once, so the user's choice survives.
+    @State private var didPickStyle = false
 
     private var theme: Theme { Theme(wallpaper: wall, backgroundLuminance: luminance) }
     private var signature: String { look?.signature ?? store.settings.signature }
     private var isCurrent: Bool {
         store.settings.wallpaperID == wall.id && store.settings.iconStyle == style
+            && (look == nil || look?.signature == store.settings.signature)
     }
 
     var body: some View {
@@ -103,7 +107,10 @@ struct DetailView: View {
         .navigationTitle(look?.name ?? wall.name)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            style = look?.iconStyle ?? (store.settings.wallpaperID == wall.id ? store.settings.iconStyle : .color)
+            if !didPickStyle {
+                didPickStyle = true
+                style = look?.iconStyle ?? (store.settings.wallpaperID == wall.id ? store.settings.iconStyle : .color)
+            }
             let size = Device.pixelSize
             // Preview at a third of the screen's pixels: sharp, and quick to draw.
             let image = await ImageCache.shared.wallpaper(wall, width: size.width / 3, height: size.height / 3)
