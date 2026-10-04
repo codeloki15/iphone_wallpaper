@@ -1,0 +1,11 @@
+// Build settings shared by the app and its widgets.
+//
+// BUNDLE_ID_BASE must be unique to you. DEVELOPMENT_TEAM is your Apple
+// team's 10-character ID (Xcode → Settings → Accounts shows it).
+// To set either without changing this file, create Local.xcconfig next to
+// it (not committed) with the same lines.
+
+BUNDLE_ID_BASE = com.codeloki15.pocketwalls
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

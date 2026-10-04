@@ -81,6 +81,8 @@ struct DayHeadlineView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
             Spacer(minLength: 8)
+            WeekStrip(date: date, colors: colors)
+            Spacer(minLength: 8)
             VStack(alignment: .leading, spacing: 6) {
                 Text("\(Int(dayFraction * 100))% of today")
                     .font(.system(size: 11, weight: .semibold))
@@ -96,6 +98,37 @@ struct DayHeadlineView: View {
         }
         .foregroundStyle(colors.ink.color)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// This week's dates, Sunday first, with today marked.
+private struct WeekStrip: View {
+    let date: Date
+    let colors: WidgetColors
+
+    private static let letters = ["S", "M", "T", "W", "T", "F", "S"]
+
+    var body: some View {
+        let calendar = Calendar.current
+        let today = calendar.component(.weekday, from: date) - 1
+        let onAccent = colors.accent.luminance > 0.5 ? RGB(hex: "#111114") : RGB.white
+        HStack(spacing: 0) {
+            ForEach(0..<7, id: \.self) { i in
+                let day = calendar.date(byAdding: .day, value: i - today, to: date) ?? date
+                let isToday = i == today
+                VStack(spacing: 5) {
+                    Text(Self.letters[i])
+                        .font(.system(size: 11, weight: .semibold))
+                        .opacity(0.55)
+                    Text(TimeWords.day(day))
+                        .font(.system(size: 15, weight: isToday ? .bold : .regular))
+                        .foregroundStyle(isToday ? onAccent.color : colors.ink.color)
+                        .frame(width: 30, height: 30)
+                        .background(isToday ? colors.accent.color : Color.clear, in: Circle())
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
     }
 }
 
@@ -118,19 +151,26 @@ struct DialClockView: View {
 
 /// Positions for the dial, in points.
 struct DialGeometry {
+    /// The dial is laid out on a grid 71 units wide; `k` is one unit.
     let k: Double
     let cx: Double
     let cy: Double
     let rm: Double
+    /// Left edge of the date block.
+    let dateX: Double
     let maxAngle = 58.0 * Double.pi / 180
     let step = 3.2 * Double.pi / 180
 
     init(width: Double, height: Double) {
-        let fit = height * 0.47 / (28 * sin(58.0 * Double.pi / 180))
-        k = min(width / 71, fit)
-        cx = k * 14
+        // Ticks fade out toward both ends of the scale, so the arc may run a
+        // little past the top and bottom of the space it is given.
+        let reach = 27.6 * sin(58.0 * Double.pi / 180)
+        k = min(width / 71, height * 0.6 / reach)
+        let left = (width - 71 * k) / 2
+        cx = left + k * 14
         cy = height / 2
         rm = k * 22
+        dateX = cx + rm + k * 10.5
     }
 
     func point(_ angle: Double, _ radius: Double) -> CGPoint {
@@ -175,7 +215,8 @@ private struct DialFace: View {
                 .position(x: pillLeft + pillWidth * 0.42, y: g.cy)
             DialDate(date: date, k: g.k)
                 .foregroundStyle(ink)
-                .position(x: g.cx + g.rm + g.k * 22, y: g.cy)
+                .frame(width: g.k * 24, alignment: .leading)
+                .position(x: g.dateX + g.k * 12, y: g.cy)
         }
     }
 }
@@ -193,7 +234,7 @@ private struct DialMark: View {
         let major = value % 5 == 0
         let fade = pow(max(0, 1 - abs(angle) / g.maxAngle), 0.7)
         let r0 = g.rm + g.k * 3.6
-        let r1 = g.rm + (major ? g.k * 5.6 : g.k * 3.4)
+        let r1 = g.rm + (major ? g.k * 5.6 : g.k * 4.6)
         // The pill covers the current minute; labels next to it would collide.
         if abs(angle) <= g.maxAngle && abs(d) > 1 {
             ZStack(alignment: .topLeading) {
@@ -220,11 +261,11 @@ private struct DialDate: View {
     var body: some View {
         VStack(alignment: .leading, spacing: k * 1.2) {
             Text("\(TimeWords.day(date)) \(TimeWords.month(date).prefix(3).uppercased())")
-                .font(.system(size: k * 2.4, weight: .medium))
-                .tracking(k * 0.55)
+                .font(.system(size: k * 2.8, weight: .medium))
+                .tracking(k * 0.5)
                 .opacity(0.85)
             Text(TimeWords.weekday(date).uppercased())
-                .font(.system(size: k * 2.6, weight: .bold))
+                .font(.system(size: k * 3.0, weight: .bold))
                 .tracking(k * 0.5)
         }
         .fixedSize()

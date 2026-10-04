@@ -3,19 +3,21 @@ import SwiftUI
 import UIKit
 
 /// Renders wallpapers off the main thread and keeps recent results.
-final class ImageCache {
+/// Safe to share across threads: NSCache is thread-safe and `icons` is
+/// guarded by a lock.
+final class ImageCache: @unchecked Sendable {
     static let shared = ImageCache()
 
     private let cache = NSCache<NSString, UIImage>()
     private let queue = DispatchQueue(label: "pocketwalls.render", qos: .userInitiated, attributes: .concurrent)
 
     func wallpaper(_ wall: Wallpaper, width: Int, height: Int, variant: Int = 0) async -> UIImage? {
-        let key = "\(wall.id)-\(width)x\(height)-\(variant)" as NSString
-        if let hit = cache.object(forKey: key) { return hit }
+        let key = "\(wall.id)-\(width)x\(height)-\(variant)"
+        if let hit = cache.object(forKey: key as NSString) { return hit }
         return await withCheckedContinuation { continuation in
             queue.async {
                 let image = WallpaperRenderer.image(wall, width: width, height: height, variant: variant)
-                if let image { self.cache.setObject(image, forKey: key) }
+                if let image { self.cache.setObject(image, forKey: key as NSString) }
                 continuation.resume(returning: image)
             }
         }

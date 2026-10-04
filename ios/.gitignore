@@ -5,6 +5,9 @@ App/PocketWalls.entitlements
 Widgets/Info.plist
 Widgets/PocketWallsWidgets.entitlements
 
+# Your own signing team and app ID (see Config.xcconfig)
+Local.xcconfig
+
 # Xcode
 xcuserdata/
 DerivedData/

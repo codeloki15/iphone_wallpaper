@@ -60,8 +60,12 @@ struct Theme {
             return IconColors(top: RGB(hex: "#18181d"), bottom: accent.mix(.black, 0.78), glyph: glyph, sheen: 0.08)
         case .color:
             let top = accent.mix(.white, 0.08)
-            let glyph = top.mix(second, 0.5).luminance > 0.55 ? accent.mix(.black, 0.62) : RGB.white
-            return IconColors(top: top, bottom: second.mix(accent, 0.25), glyph: glyph, sheen: 0.18)
+            var bottom = second.mix(accent, 0.25)
+            // No single glyph color reads across a light-to-dark gradient, so
+            // soften gradients that span too much.
+            if abs(top.luminance - bottom.luminance) > 0.45 { bottom = top.mix(bottom, 0.4) }
+            let glyph = top.mix(bottom, 0.5).luminance > 0.4 ? accent.mix(.black, 0.62) : RGB.white
+            return IconColors(top: top, bottom: bottom, glyph: glyph, sheen: 0.18)
         }
     }
 

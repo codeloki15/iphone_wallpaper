@@ -15,21 +15,42 @@ saving to Photos, and a Shortcuts action for one-tap wallpaper changes.
 
 ## Build and run
 
-1. Open `project.yml` and change `BUNDLE_ID_BASE` to something unique to
-   you, such as `com.yourname.pocketwalls`.
+1. `Config.xcconfig` holds the app ID (`BUNDLE_ID_BASE`) and your signing
+   team (`DEVELOPMENT_TEAM`). To use your own values without changing that
+   file, create `Local.xcconfig` next to it with the same lines; it is not
+   committed.
 2. In Terminal, in this `ios` folder:
    ```bash
    xcodegen generate
    open PocketWalls.xcodeproj
    ```
 3. In Xcode, add your Apple ID under **Settings → Accounts**.
-4. Select the **PocketWalls** target → **Signing & Capabilities** → choose
-   your **Team**. Do the same for the **PocketWallsWidgets** target.
+4. Put your team's 10-character ID in `Local.xcconfig`
+   (`DEVELOPMENT_TEAM = ABCDE12345`) and run `xcodegen generate` again. Or
+   pick the **Team** under **Signing & Capabilities** for both targets, which
+   lasts until the project is next regenerated.
 5. Pick an iPhone simulator (or your connected iPhone) at the top and press
    **⌘R**.
 
 Run `xcodegen generate` again whenever files are added or `project.yml`
 changes. The generated project is not committed.
+
+### Checking the code without Xcode
+
+Apple's Command Line Tools include the Mac Catalyst SDK, which has the same
+UIKit, SwiftUI, WidgetKit and AppIntents APIs. Both targets compile against
+it with no errors or warnings:
+
+```bash
+SDK=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk; IOS=$SDK/System/iOSSupport
+swiftc -typecheck -parse-as-library -swift-version 5 \
+  -target arm64-apple-ios17.0-macabi -sdk $SDK \
+  -Fsystem $IOS/System/Library/Frameworks -I $IOS/usr/lib/swift \
+  Shared/*.swift App/*.swift
+```
+
+For the widgets, add `-application-extension` and use `Widgets/*.swift` in
+place of `App/*.swift`.
 
 ### On your own iPhone
 

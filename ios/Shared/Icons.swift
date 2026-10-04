@@ -166,7 +166,7 @@ enum IconRenderer {
     }
 }
 
-/// A small SVG path parser: M L H V C S Q A Z, absolute and relative.
+/// A small SVG path parser: M L H V C S Q T A Z, absolute and relative.
 enum SVGPath {
     private enum Token {
         case command(Character)
@@ -180,8 +180,10 @@ enum SVGPath {
         var current = CGPoint.zero
         var start = CGPoint.zero
         var command: Character = "M"
-        // The previous cubic's second control point, for S (smooth) curves.
-        var lastC2: CGPoint?
+        // The previous curve's last control point. The smooth commands (S and
+        // T) mirror it through the current point.
+        var lastCubic: CGPoint?
+        var lastQuad: CGPoint?
 
         func number() -> Double {
             guard i < tokens.count, case .number(let v) = tokens[i] else { return 0 }
@@ -201,6 +203,8 @@ enum SVGPath {
                 if c == "Z" || c == "z" {
                     path.closeSubpath()
                     current = start
+                    lastCubic = nil
+                    lastQuad = nil
                     continue
                 }
             }
@@ -210,10 +214,12 @@ enum SVGPath {
                 continue
             }
             let relative = command.isLowercase
-            let prevC2 = lastC2
-            lastC2 = nil
             let ox: Double = relative ? Double(current.x) : 0
             let oy: Double = relative ? Double(current.y) : 0
+            let previousCubic = lastCubic
+            let previousQuad = lastQuad
+            lastCubic = nil
+            lastQuad = nil
             switch command {
             case "M", "m":
                 let p = CGPoint(x: ox + number(), y: oy + number())
@@ -237,20 +243,26 @@ enum SVGPath {
                 let c2 = CGPoint(x: ox + number(), y: oy + number())
                 let p = CGPoint(x: ox + number(), y: oy + number())
                 path.addCurve(to: p, control1: c1, control2: c2)
-                lastC2 = c2
+                lastCubic = c2
                 current = p
             case "S", "s":
-                // The first control point mirrors the previous curve's second.
-                let c1 = prevC2.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
+                let c1 = previousCubic.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
                 let c2 = CGPoint(x: ox + number(), y: oy + number())
                 let p = CGPoint(x: ox + number(), y: oy + number())
                 path.addCurve(to: p, control1: c1, control2: c2)
-                lastC2 = c2
+                lastCubic = c2
                 current = p
             case "Q", "q":
                 let c1 = CGPoint(x: ox + number(), y: oy + number())
                 let p = CGPoint(x: ox + number(), y: oy + number())
                 path.addQuadCurve(to: p, control: c1)
+                lastQuad = c1
+                current = p
+            case "T", "t":
+                let c1 = previousQuad.map { CGPoint(x: 2 * current.x - $0.x, y: 2 * current.y - $0.y) } ?? current
+                let p = CGPoint(x: ox + number(), y: oy + number())
+                path.addQuadCurve(to: p, control: c1)
+                lastQuad = c1
                 current = p
             case "A", "a":
                 let rx = number()
@@ -274,7 +286,7 @@ enum SVGPath {
         var i = 0
         while i < chars.count {
             let c = chars[i]
-            if "MmLlHhVvCcSsQqAaZz".contains(c) {
+            if "MmLlHhVvCcSsQqTtAaZz".contains(c) {
                 out.append(.command(c))
                 i += 1
             } else if c == "-" || c == "+" || c == "." || c.isNumber {

@@ -1,21 +1,22 @@
 # Generates PocketWalls.xcodeproj. Run `xcodegen generate` in this folder.
-# Before the first build, change BUNDLE_ID_BASE to something unique to you,
-# for example com.yourname.pocketwalls. Everything else derives from it.
+# The app ID (BUNDLE_ID_BASE) and signing team live in Config.xcconfig, so
+# regenerating the project keeps them.
 name: PocketWalls
 options:
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
 settings:
   base:
-    BUNDLE_ID_BASE: com.yourname.pocketwalls
     APP_GROUP_ID: group.$(BUNDLE_ID_BASE)
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
     CODE_SIGN_STYLE: Automatic
-    DEVELOPMENT_TEAM: ""
 targets:
   PocketWalls:
     type: application
