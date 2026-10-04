@@ -27,6 +27,19 @@ iPhone model you choose. There are no image files to host.
 - **Remix**: re-roll any design with a new random seed
 - Save at full resolution: opens the image to press-and-hold save on iPhone, with a direct download link as well
 
+## Install it like an app
+
+On iPhone, open the site in Safari, tap **Share → Add to Home Screen**. It opens
+full screen with its own icon and works offline (via `sw.js` and
+`manifest.webmanifest`). Bump `VERSION` in `sw.js` when you change files, so
+installed copies pick up the update.
+
+## iPhone app
+
+The `ios/` folder holds a native SwiftUI version with real Home Screen and Lock
+Screen widgets that follow the chosen theme. See [ios/README.md](ios/README.md)
+for building it on a Mac with Xcode.
+
 ## Run locally
 
 It's a static site with no build step:
