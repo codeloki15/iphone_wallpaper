@@ -920,6 +920,25 @@
     renderGrid();
   });
 
+  // ---------- install as an app ----------
+
+  // Offline support on real hosts (service workers can't run in sandboxed
+  // previews, where registration simply fails).
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // iPhone Safari has no install prompt, so show a one-time hint there.
+  const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const iosSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+  if (iosSafari && !standalone && window.top === window.self && !store.get('pw:installHidden', false)) {
+    $('#install').hidden = false;
+  }
+  $('#installClose').addEventListener('click', () => {
+    $('#install').hidden = true;
+    store.set('pw:installHidden', true);
+  });
+
   $('#surprise').addEventListener('click', () => {
     state.category = 'All';
     state.query = '';
