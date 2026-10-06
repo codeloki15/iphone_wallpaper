@@ -10,12 +10,12 @@ final class AppRouter: ObservableObject {
     @Published var path: [Route] = []
     /// A wallpaper whose screen should start setup as soon as it shows.
     @Published var setupOnOpen: String?
-    /// The section the widget previews should open at ("lock"), if any.
+    /// The section the widget previews should open at ("rivers", "home", "lock"), if any.
     var widgetsAnchor: String?
 
     /// pocketwalls://theme/<id>          opens that wallpaper
     /// pocketwalls://theme/<id>/setup    opens it and starts setup
-    /// pocketwalls://widgets[/lock]      opens the widget previews
+    /// pocketwalls://widgets[/section]   opens the widget previews
     /// pocketwalls://icons/install       sends the theme's icons to Safari
     /// pocketwalls://shortcut/<result>   the wallpaper shortcut reporting back
     func handle(_ url: URL) {

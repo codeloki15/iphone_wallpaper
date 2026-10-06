@@ -79,10 +79,18 @@ struct Theme {
         case .color: background = dark ? accent.mix(.black, 0.82) : accent.mix(.white, 0.9)
         }
         let accentInk = accent.luminance > 0.6 && !dark ? accent.mix(.black, 0.45) : accent
+        let ink = dark ? RGB.white : RGB(hex: "#111114")
+        // A second color for scenes with several objects. It must stand
+        // out from the background as the accent does.
+        var other = second
+        if abs(other.luminance - background.luminance) < 0.25 {
+            other = other.mix(dark ? .white : .black, 0.5)
+        }
         return WidgetColors(
             background: background,
-            ink: dark ? .white : RGB(hex: "#111114"),
+            ink: ink,
             accent: style == .mono ? .white : accentInk,
+            second: style == .mono ? RGB(hex: "#8e8e96") : other,
             isDark: dark
         )
     }
@@ -92,6 +100,7 @@ struct WidgetColors {
     let background: RGB
     let ink: RGB
     let accent: RGB
+    let second: RGB
     let isDark: Bool
 }
 

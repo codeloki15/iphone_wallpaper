@@ -37,7 +37,8 @@ installed copies pick up the update.
 ## iPhone app
 
 The `ios/` folder holds a native SwiftUI version with real Home Screen and Lock
-Screen widgets that follow the chosen theme. See [ios/README.md](ios/README.md)
+Screen widgets that follow the chosen theme, including moving ones (planets,
+a thunderstorm, race cars, and river maps of the USA, Asia, Canada and Japan). See [ios/README.md](ios/README.md)
 for building it on a Mac with Xcode.
 
 ## Run locally

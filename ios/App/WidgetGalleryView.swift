@@ -23,7 +23,24 @@ struct WidgetGalleryView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Home Screen").font(.title3.weight(.bold))
+                        Text("Moving").font(.title3.weight(.bold))
+                        homeWidget("Orbit", "Small, Medium or Large", medium, colors, padding: 0) {
+                            OrbitView(date: date, colors: colors)
+                        }
+                        homeWidget("Thunderstorm", "Small or Medium", medium, colors, padding: 0, sky: true) {
+                            StormView(date: date, colors: colors)
+                        }
+                        homeWidget("Race Day", "Medium", medium, colors, padding: 0) {
+                            RaceView(date: date, colors: colors)
+                        }
+                        ForEach([RiverRegion.usa, .asia, .canada, .japan], id: \.key) { region in
+                            homeWidget("Rivers of \(region.title)", "Medium or Large", medium, colors) {
+                                RiversView(region: region, date: date, colors: colors)
+                            }
+                            .id(region.key == "usa" ? "rivers" : region.key)
+                        }
+
+                        Text("Home Screen").font(.title3.weight(.bold)).padding(.top, 8).id("home")
                         homeWidget("Dial Clock", "Medium", medium, colors) { DialClockView(date: date, colors: colors) }
                         homeWidget("Day Sentence", "Medium", medium, colors) { DaySentenceView(date: date, colors: colors) }
                         homeWidget("Big Date", "Small", small, colors) { BigDateView(date: date, colors: colors) }
@@ -39,16 +56,16 @@ struct WidgetGalleryView: View {
                             lockWidget("Waveform", rectangular) { WaveformView(seed: settings.wallpaper.seed) }
                         }
 
-                        Text("To add one, touch and hold your Home Screen or Lock Screen, tap Edit or Customize, and look for Pocket Walls. Seconds keep running by themselves.")
+                        Text("To add one, touch and hold your Home Screen or Lock Screen, tap Edit or Customize, and look for Pocket Walls. Moving widgets run for about half an hour at a time, then rest until iOS refreshes them; opening Pocket Walls starts them again.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                // pocketwalls://widgets/lock opens at the Lock Screen widgets.
+                // pocketwalls://widgets/<section> opens at "rivers", "home" or "lock".
                 .onAppear {
-                    if router.widgetsAnchor == "lock" { proxy.scrollTo("lock", anchor: .top) }
+                    if let anchor = router.widgetsAnchor { proxy.scrollTo(anchor, anchor: .top) }
                     router.widgetsAnchor = nil
                 }
             }
@@ -57,16 +74,21 @@ struct WidgetGalleryView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// A Home Screen widget on its themed card, at real size.
+    /// A Home Screen widget on its themed card, at real size. `padding` is
+    /// 0 for scenes that run to the edges; `sky` gives the storm its own
+    /// background.
     private func homeWidget<Content: View>(
         _ name: String, _ size: String, _ points: CGSize, _ colors: WidgetColors,
+        padding: CGFloat = 16, sky: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             content()
-                .padding(16)
+                .padding(padding)
                 .frame(width: points.width, height: points.height)
-                .background(colors.background.color)
+                .background {
+                    if sky { StormSky(colors: colors) } else { colors.background.color }
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             Text("\(name) \u{00B7} \(size)")
                 .font(.caption.weight(.semibold))

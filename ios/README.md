@@ -71,10 +71,47 @@ redraw in its colors.
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
 | `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action |
-| `Widgets/` | Widget bundle: Day Sentence, Big Date, Dial Clock, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
+| `Widgets/` | Widget bundle: the moving widgets (Orbit, Thunderstorm, Race Day, Rivers of the USA, Asia, Canada and Japan), Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
+| `tools/` | `make_river_maps.py`, which builds the Rivers artwork and flow paths from Natural Earth data |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
+
+## Moving widgets
+
+WidgetKit has no way to run a view's own animation. It animates a widget
+only when it moves from one timeline entry to the next, so the moving
+widgets (`Shared/MotionScenes.swift`, and the Dial Clock's second hand)
+supply entries two seconds apart, each animating linearly into the next
+(`MotionProvider` in `Widgets/PocketWallsWidgets.swift`).
+
+Things learned the hard way:
+
+- **A timeline is limited to about 10 MB**, and iOS stores every entry's
+  whole view. Over the limit the reload fails and is not retried for an
+  hour. Each `Text` costs about 1 KB per entry and each shape 0.3 to 1 KB,
+  so scenes use few views: fixed art is an asset image or a dashed stroke,
+  and only moving pieces are views. `movingMinutes` per widget comes from
+  measured sizes. After the moving run the widget rests (drawn still) until
+  iOS asks for the next timeline.
+- **Check real widgets, not only previews.** The simulator stores its Home
+  Screen layout in `data/Library/SpringBoard/IconState.plist`; adding
+  widget entries there (simulator shut down) puts real widgets on the Home
+  Screen without tapping. Timeline archives appear under
+  `Containers/Data/PluginKitPlugin/*/SystemData/com.apple.chrono/timelines/`,
+  and `chronod` logs why a reload failed.
+- **The simulator shows widgets as still snapshots.** Timer text doesn't
+  tick and entry animations don't play there, so motion can only be judged
+  on a phone (`xcrun devicectl device capture screenshot` works).
+- A widget's `configurationDisplayName` and `description` must be plain
+  strings; a literal with interpolation stops the extension.
+- In Debug builds, `pocketwalls://debug/entries/<n>` overrides the number
+  of moving entries (0 clears it), for measuring archive sizes.
+
+The Rivers maps come from Natural Earth (public domain). Regenerate them
+with `python3 tools/make_river_maps.py` from the `ios` folder. Natural
+Earth has only three rivers in Japan, so five more are traced in the script
+from the cities they pass and are approximate.
 
 ## Running seconds in widgets
 

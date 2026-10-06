@@ -4,9 +4,29 @@ import WidgetKit
 @main
 struct PocketWallsWidgetBundle: WidgetBundle {
     var body: some Widget {
+        MovingWidgets().body
+        ClockWidgets().body
+    }
+}
+
+/// Widgets that move: scenes drawn in MotionScenes.swift.
+struct MovingWidgets: WidgetBundle {
+    var body: some Widget {
+        OrbitWidget()
+        StormWidget()
+        RaceWidget()
+        RiversUSAWidget()
+        RiversAsiaWidget()
+        RiversCanadaWidget()
+        RiversJapanWidget()
+    }
+}
+
+struct ClockWidgets: WidgetBundle {
+    var body: some Widget {
+        DialClockWidget()
         DaySentenceWidget()
         BigDateWidget()
-        DialClockWidget()
         DayHeadlineWidget()
         SignatureWidget()
         WaveformWidget()
@@ -91,7 +111,9 @@ struct BigDateWidget: Widget {
 /// correct if iOS is slow to ask for the next timeline.
 struct MotionProvider: TimelineProvider {
     let movingMinutes: Int
-    private let restingMinutes = 90
+    /// Entries a minute apart after the moving run. A clock needs them to
+    /// stay right; a scene looks the same at rest, so it needs none.
+    var restingMinutes = 0
 
     func placeholder(in context: Context) -> ThemeEntry {
         ThemeEntry(date: Date(), settings: ThemeSettings.load())
@@ -131,7 +153,7 @@ struct MotionProvider: TimelineProvider {
 
 struct DialClockWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "DialClock", provider: MotionProvider(movingMinutes: 8)) { entry in
+        StaticConfiguration(kind: "DialClock", provider: MotionProvider(movingMinutes: 8, restingMinutes: 90)) { entry in
             DialClockView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
                 .themedBackground(entry)
         }
@@ -199,4 +221,83 @@ struct RunningClockWidget: Widget {
         .description("The time with running seconds and a bar that fills every minute, for the Lock Screen.")
         .supportedFamilies([.accessoryRectangular])
     }
+}
+
+// MARK: - Moving widgets
+//
+// `movingMinutes` is set from each scene's measured cost per entry (7 to
+// 8 KB, measured in the simulator), to keep the whole timeline near 7 MB,
+// well under the 10 MB that iOS accepts.
+
+struct OrbitWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "Orbit", provider: MotionProvider(movingMinutes: 30)) { entry in
+            OrbitView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+                .themedBackground(entry)
+        }
+        .configurationDisplayName("Orbit")
+        .description("Six planets circling a sun, each at its own speed.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
+    }
+}
+
+struct StormWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "Storm", provider: MotionProvider(movingMinutes: 30)) { entry in
+            StormView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+                .containerBackground(for: .widget) {
+                    StormSky(colors: entry.settings.widgetColors)
+                }
+        }
+        .configurationDisplayName("Thunderstorm")
+        .description("Rain under heavy cloud, with lightning every so often.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+        .contentMarginsDisabled()
+    }
+}
+
+struct RaceWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "Race", provider: MotionProvider(movingMinutes: 30)) { entry in
+            RaceView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+                .themedBackground(entry)
+        }
+        .configurationDisplayName("Race Day")
+        .description("Race cars streaking down the main straight.")
+        .supportedFamilies([.systemMedium])
+        .contentMarginsDisabled()
+    }
+}
+
+// WidgetKit needs a type of its own for every kind of widget, so each
+// region has one; they share this configuration.
+private func riversConfiguration(kind: String, region: RiverRegion) -> some WidgetConfiguration {
+    // Plain strings: WidgetKit stops the extension if a name or description
+    // is built by interpolating into a literal.
+    let name: String = "Rivers of " + region.title
+    let description: String = "The great rivers of " + region.title + ", with lights drifting from source to mouth."
+    return StaticConfiguration(kind: kind, provider: MotionProvider(movingMinutes: 28)) { entry in
+        RiversView(region: region, date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+            .themedBackground(entry)
+    }
+    .configurationDisplayName(name)
+    .description(description)
+    .supportedFamilies([.systemMedium, .systemLarge])
+}
+
+struct RiversUSAWidget: Widget {
+    var body: some WidgetConfiguration { riversConfiguration(kind: "RiversUSA", region: .usa) }
+}
+
+struct RiversAsiaWidget: Widget {
+    var body: some WidgetConfiguration { riversConfiguration(kind: "RiversAsia", region: .asia) }
+}
+
+struct RiversCanadaWidget: Widget {
+    var body: some WidgetConfiguration { riversConfiguration(kind: "RiversCanada", region: .canada) }
+}
+
+struct RiversJapanWidget: Widget {
+    var body: some WidgetConfiguration { riversConfiguration(kind: "RiversJapan", region: .japan) }
 }

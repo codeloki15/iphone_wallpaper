@@ -13,3 +13,6 @@ xcuserdata/
 DerivedData/
 build/
 *.xcuserstate
+
+# Map data downloaded by tools/make_river_maps.py
+tools/.cache/
