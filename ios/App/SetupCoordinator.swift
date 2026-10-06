@@ -15,6 +15,7 @@ final class AppRouter: ObservableObject {
     /// pocketwalls://theme/<id>          opens that wallpaper
     /// pocketwalls://theme/<id>/setup    opens it and starts setup
     /// pocketwalls://widgets[/lock]      opens the widget previews
+    /// pocketwalls://icons/install       sends the theme's icons to Safari
     /// pocketwalls://shortcut/<result>   the wallpaper shortcut reporting back
     func handle(_ url: URL) {
         guard url.scheme == "pocketwalls" else { return }
@@ -29,6 +30,9 @@ final class AppRouter: ObservableObject {
         case "widgets":
             widgetsAnchor = parts.first
             path = [.widgets]
+        case "icons":
+            // pocketwalls://icons/install sends the current theme's icons to Safari.
+            if parts.first == "install" { SetupCoordinator.shared.installIcons() }
         default:
             break
         }

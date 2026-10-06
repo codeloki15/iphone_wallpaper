@@ -5,8 +5,9 @@ import Network
 ///
 /// iOS only installs a configuration profile that Safari has downloaded, and
 /// an app can't pass Safari a file directly. So the app serves the profile
-/// on localhost and opens Safari at that address. Only connections from this
-/// device are accepted, and the server stops by itself.
+/// on the loopback address and opens Safari there. The server is bound to
+/// 127.0.0.1, so nothing outside this device can reach it, and it stops by
+/// itself.
 final class ProfileServer: @unchecked Sendable {
     static let shared = ProfileServer()
     static let preferredPort: UInt16 = 8437
@@ -18,7 +19,7 @@ final class ProfileServer: @unchecked Sendable {
     private var announced = false
     private var stopWork: DispatchWorkItem?
 
-    /// Serves `data` at http://localhost:<port>/<fileName> for `lifetime`
+    /// Serves `data` at http://127.0.0.1:<port>/<fileName> for `lifetime`
     /// seconds. Calls back on the main queue with that URL, or nil if no
     /// port could be opened.
     func serve(_ data: Data, fileName: String, lifetime: TimeInterval = 120, completion: @escaping @Sendable (URL?) -> Void) {
@@ -43,10 +44,12 @@ final class ProfileServer: @unchecked Sendable {
     /// `port` 0 asks the system for any free port; it is the fallback when
     /// the preferred one is taken.
     private func start(port: UInt16, fileName: String, lifetime: TimeInterval, completion: @escaping @Sendable (URL?) -> Void) {
-        let parameters = NWParameters.tcp
-        parameters.acceptLocalOnly = true
-        parameters.allowLocalEndpointReuse = true
         let endpointPort: NWEndpoint.Port = port == 0 ? .any : (NWEndpoint.Port(rawValue: port) ?? .any)
+        let parameters = NWParameters.tcp
+        parameters.allowLocalEndpointReuse = true
+        // Bind to loopback only. (`acceptLocalOnly` is not the way to do
+        // this: inside an iOS app it rejects loopback connections too.)
+        parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(.loopback), port: endpointPort)
 
         func giveUpOrRetry() {
             if port != 0 {
@@ -56,7 +59,7 @@ final class ProfileServer: @unchecked Sendable {
             }
         }
 
-        guard let listener = try? NWListener(using: parameters, on: endpointPort) else {
+        guard let listener = try? NWListener(using: parameters) else {
             giveUpOrRetry()
             return
         }
@@ -71,7 +74,7 @@ final class ProfileServer: @unchecked Sendable {
             case .ready:
                 guard !self.announced, let bound = listener.port?.rawValue else { return }
                 self.announced = true
-                let url = URL(string: "http://localhost:\(bound)/\(fileName)")
+                let url = URL(string: "http://127.0.0.1:\(bound)/\(fileName)")
                 DispatchQueue.main.async { completion(url) }
             case .failed:
                 guard !self.announced else { return }
