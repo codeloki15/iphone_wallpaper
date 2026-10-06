@@ -70,9 +70,9 @@ redraw in its colors.
 | Folder | What's inside |
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
-| `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action |
-| `Widgets/` | Widget bundle: the moving widgets (Orbit, Thunderstorm, Race Day, Rivers of the USA, Asia, Canada and Japan), Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
-| `tools/` | `make_river_maps.py`, which builds the Rivers artwork and flow paths from Natural Earth data |
+| `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action, live wallpapers (`LiveWallpapers.swift`) |
+| `Widgets/` | Widget bundle: the moving widgets (Orbit, Thunderstorm, Race Day, Rivers of the USA, Asia, Canada and Japan), four watch faces (Diver, Traveller, Chronograph, Skeleton), Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
+| `tools/` | `make_river_maps.py` builds the Rivers artwork and flow paths from Natural Earth data; `make_watch_faces.py` draws the watch dials |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
@@ -112,6 +112,32 @@ The Rivers maps come from Natural Earth (public domain). Regenerate them
 with `python3 tools/make_river_maps.py` from the `ios` folder. Natural
 Earth has only three rivers in Japan, so five more are traced in the script
 from the cities they pass and are approximate.
+
+## Watch faces
+
+Four original designs with no brand names or logos. `tools/make_watch_faces.py`
+draws each dial (case, bezel, markers, sub-dials) with Pillow, including its
+own stroke font for the numerals, so no typeface is embedded. The hands, date
+and other moving parts are views in `Shared/WatchFaces.swift`, measured in
+the same case-radius units as the generator. The second hand uses the
+moving-widget timeline; after the moving run, per-minute entries keep the
+hour and minute hands right and the second hand is hidden.
+
+## Live wallpapers
+
+iOS plays a Live Photo wallpaper when the Lock Screen wakes, and offers no
+way for an app to set a wallpaper. So `App/LiveWallpapers.swift` renders an
+animated Core Graphics scene into a Live Photo and saves it to Photos, and
+the person picks it in the wallpaper chooser. A Live Photo is a JPEG and a
+QuickTime movie that share an identifier: the JPEG carries it in its Apple
+maker note (key 17), the movie as `com.apple.quicktime.content.identifier`,
+and the movie also needs a metadata track with one
+`com.apple.quicktime.still-image-time` sample. In Debug builds,
+`pocketwalls://debug/live/<id>` makes and saves one and leaves copies of both
+files in the app's Documents folder for inspection (`ffprobe` shows the
+`mebx` track; the simulator's `Photos.sqlite` shows `ZKINDSUBTYPE` 2).
+Whether iOS lets a given Live Photo move as a wallpaper is its own decision
+and can only be checked on a phone.
 
 ## Running seconds in widgets
 

@@ -40,6 +40,15 @@ struct WidgetGalleryView: View {
                             .id(region.key == "usa" ? "rivers" : region.key)
                         }
 
+                        Text("Watches").font(.title3.weight(.bold)).padding(.top, 8).id("watches")
+                        LazyVGrid(columns: [GridItem(.fixed(small.width), spacing: 16), GridItem(.fixed(small.width))], alignment: .leading, spacing: 16) {
+                            ForEach(WatchFace.allCases) { face in
+                                homeWidget(face.title, "Small or Large", small, colors, padding: 8) {
+                                    WatchFaceView(face: face, date: date)
+                                }
+                            }
+                        }
+
                         Text("Home Screen").font(.title3.weight(.bold)).padding(.top, 8).id("home")
                         homeWidget("Dial Clock", "Medium", medium, colors) { DialClockView(date: date, colors: colors) }
                         homeWidget("Day Sentence", "Medium", medium, colors) { DaySentenceView(date: date, colors: colors) }

@@ -5,6 +5,7 @@ import WidgetKit
 struct PocketWallsWidgetBundle: WidgetBundle {
     var body: some Widget {
         MovingWidgets().body
+        WatchWidgets().body
         ClockWidgets().body
     }
 }
@@ -19,6 +20,16 @@ struct MovingWidgets: WidgetBundle {
         RiversAsiaWidget()
         RiversCanadaWidget()
         RiversJapanWidget()
+    }
+}
+
+/// Watch faces: dials drawn by tools/make_watch_faces.py, hands in WatchFaces.swift.
+struct WatchWidgets: WidgetBundle {
+    var body: some Widget {
+        WatchDiverWidget()
+        WatchTravellerWidget()
+        WatchChronoWidget()
+        WatchSkeletonWidget()
     }
 }
 
@@ -300,4 +311,38 @@ struct RiversCanadaWidget: Widget {
 
 struct RiversJapanWidget: Widget {
     var body: some WidgetConfiguration { riversConfiguration(kind: "RiversJapan", region: .japan) }
+}
+
+// MARK: - Watch faces
+
+private func watchConfiguration(kind: String, face: WatchFace) -> some WidgetConfiguration {
+    let name: String = face.title + " Watch"
+    let description: String = face.summary
+    // The hands must stay right when the moving run is over, so these
+    // keep a per-minute entry for the next hour and a half.
+    return StaticConfiguration(kind: kind, provider: MotionProvider(movingMinutes: 35, restingMinutes: 90)) { entry in
+        WatchFaceView(face: face, date: entry.date, motion: entry.motion)
+            .padding(8)
+            .themedBackground(entry)
+    }
+    .configurationDisplayName(name)
+    .description(description)
+    .supportedFamilies([.systemSmall, .systemLarge])
+    .contentMarginsDisabled()
+}
+
+struct WatchDiverWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchDiver", face: .diver) }
+}
+
+struct WatchTravellerWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchTraveller", face: .gmt) }
+}
+
+struct WatchChronoWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchChrono", face: .chrono) }
+}
+
+struct WatchSkeletonWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchSkeleton", face: .orrery) }
 }

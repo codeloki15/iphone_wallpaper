@@ -53,7 +53,7 @@ struct SetupGuideView: View {
 
             Section {
                 GuideStep(1, "Touch and hold an empty spot on your Home Screen, then tap **Edit** → **Add Widget**.")
-                GuideStep(2, "Search for **Pocket Walls** and add the ones you like: **Orbit**, **Thunderstorm**, **Race Day**, **Rivers**, **Dial Clock**, **Day Sentence**, **Big Date** or **Day Headline**.")
+                GuideStep(2, "Search for **Pocket Walls** and add the ones you like: the watches (**Diver**, **Traveller**, **Chronograph**, **Skeleton**), **Orbit**, **Thunderstorm**, **Race Day**, **Rivers**, **Dial Clock**, **Day Sentence**, **Big Date** or **Day Headline**.")
                 GuideStep(3, "That's it: when you set up another theme, the widgets change with it.")
                 NavigationLink(value: Route.widgets) {
                     Label("See all the widgets", systemImage: "square.grid.2x2")

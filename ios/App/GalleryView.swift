@@ -15,6 +15,7 @@ struct GalleryView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     currentTheme
                     looks
+                    live
                     chips
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 12)], spacing: 16) {
                         ForEach(walls) { wall in
@@ -53,6 +54,8 @@ struct GalleryView: View {
                     SetupGuideView()
                 case .widgets:
                     WidgetGalleryView()
+                case .live(let id):
+                    if let scene = LiveScene.scene(id: id) { LiveWallpaperView(scene: scene) }
                 }
             }
         }
@@ -111,6 +114,28 @@ struct GalleryView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /// Animated wallpapers, saved as Live Photos.
+    private var live: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Live wallpapers")
+                .font(.title3.weight(.bold))
+            HStack(spacing: 12) {
+                ForEach(LiveScene.all) { scene in
+                    NavigationLink(value: Route.live(scene.id)) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            LiveThumb(scene: scene)
+                            Label(scene.name, systemImage: "livephoto")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

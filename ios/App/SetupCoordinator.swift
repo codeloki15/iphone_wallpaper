@@ -17,6 +17,7 @@ final class AppRouter: ObservableObject {
     /// pocketwalls://theme/<id>/setup    opens it and starts setup
     /// pocketwalls://widgets[/section]   opens the widget previews
     /// pocketwalls://icons/install       sends the theme's icons to Safari
+    /// pocketwalls://live/<id>           opens that live wallpaper
     /// pocketwalls://shortcut/<result>   the wallpaper shortcut reporting back
     func handle(_ url: URL) {
         guard url.scheme == "pocketwalls" else { return }
@@ -34,12 +35,35 @@ final class AppRouter: ObservableObject {
         case "icons":
             // pocketwalls://icons/install sends the current theme's icons to Safari.
             if parts.first == "install" { SetupCoordinator.shared.installIcons() }
+        case "live":
+            guard let id = parts.first, LiveScene.scene(id: id) != nil else { return }
+            path = [.live(id)]
         #if DEBUG
         case "debug":
             // pocketwalls://debug/entries/<n>: entries per moving-widget timeline.
             if parts.first == "entries", let n = Int(parts.dropFirst().first ?? "") {
                 AppGroup.defaults.set(n, forKey: "debugMotionEntries")
                 WidgetCenter.shared.reloadAllTimelines()
+            }
+            // pocketwalls://debug/live/<id>: makes that Live Photo, keeps a
+            // copy of its two files in Documents, saves it, and logs the result.
+            if parts.first == "live", let scene = LiveScene.scene(id: parts.dropFirst().first ?? "") {
+                let size = Device.pixelSize
+                Task.detached {
+                    do {
+                        let files = try LivePhoto.make(scene: scene, pixelWidth: size.width, pixelHeight: size.height) { _ in }
+                        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                        for url in [files.photo, files.video] {
+                            let copy = documents.appendingPathComponent(url.lastPathComponent)
+                            try? FileManager.default.removeItem(at: copy)
+                            try FileManager.default.copyItem(at: url, to: copy)
+                        }
+                        try await LivePhoto.save(files)
+                        NSLog("LIVE-DEBUG saved %@ with identifier %@", scene.id, files.identifier)
+                    } catch {
+                        NSLog("LIVE-DEBUG failed: %@", String(describing: error))
+                    }
+                }
             }
         #endif
         default:
