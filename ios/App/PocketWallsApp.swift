@@ -33,4 +33,5 @@ enum Route: Hashable {
     case wallpaper(String)
     case look(String)
     case setup
+    case widgets
 }

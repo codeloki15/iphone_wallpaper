@@ -55,6 +55,9 @@ struct SetupGuideView: View {
                 GuideStep(1, "Touch and hold an empty spot on your Home Screen, then tap **Edit** → **Add Widget**.")
                 GuideStep(2, "Search for **Pocket Walls** and add **Day Sentence**, **Big Date**, **Dial Clock** or **Day Headline**.")
                 GuideStep(3, "That's it: when you set up another theme, the widgets change with it.")
+                NavigationLink(value: Route.widgets) {
+                    Label("See all the widgets", systemImage: "square.grid.2x2")
+                }
             } header: {
                 Text("2 · Home Screen widgets")
             } footer: {
@@ -67,7 +70,7 @@ struct SetupGuideView: View {
                     set: { store.settings.signature = $0 }
                 ))
                 GuideStep(1, "Touch and hold the Lock Screen, tap **Customize** → **Lock Screen**.")
-                GuideStep(2, "Tap the area under the time and add **Signature** or **Waveform** from Pocket Walls.")
+                GuideStep(2, "Tap the area under the time and add **Seconds Ring**, **Running Clock**, **Signature** or **Waveform** from Pocket Walls.")
                 GuideStep(3, "Tap the time and set its color to the clock color below. In the color picker, the **Sliders** tab takes the code.")
                 ColorRow(label: "Clock color", color: theme.clock)
             } header: {

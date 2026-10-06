@@ -71,10 +71,24 @@ redraw in its colors.
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
 | `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action |
-| `Widgets/` | Widget bundle: Day Sentence, Big Date, Dial Clock, Day Headline, and the Signature and Waveform Lock Screen widgets |
+| `Widgets/` | Widget bundle: Day Sentence, Big Date, Dial Clock, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
+
+## Running seconds in widgets
+
+Widgets can't animate by themselves, and a timeline can't sensibly hold an
+entry per second. The seconds use the two views the system keeps moving
+between entries (`Shared/WidgetViews.swift`, "Live seconds"):
+
+- `Text(date, style: .timer)`, clipped to its last two digits, for ticking
+  seconds.
+- `ProgressView(timerInterval:)` for a ring or bar that fills each minute.
+  Inside an app the circular style draws as a spinner, so `SecondsRing`
+  draws its own ring there and uses the system one only in the extension.
+
+The timeline has one entry per minute, which restarts both.
 
 ## How "Set up theme" works
 

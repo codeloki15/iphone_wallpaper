@@ -10,11 +10,14 @@ struct PocketWallsWidgetBundle: WidgetBundle {
         DayHeadlineWidget()
         SignatureWidget()
         WaveformWidget()
+        SecondsRingWidget()
+        RunningClockWidget()
     }
 }
 
-/// Every widget shows the theme chosen in the app, refreshed each minute
-/// so the time words stay current.
+/// Every widget shows the theme chosen in the app, with an entry for each
+/// minute so the time words stay current. Seconds run by themselves between
+/// entries (see "Live seconds" in WidgetViews.swift).
 struct ThemeEntry: TimelineEntry {
     let date: Date
     let settings: ThemeSettings
@@ -33,10 +36,12 @@ struct ThemeProvider: TimelineProvider {
         let settings = ThemeSettings.load()
         let now = Date()
         let start = Calendar.current.dateInterval(of: .minute, for: now)?.start ?? now
-        let entries = (0..<60).map { i in
+        // Two hours of entries, refreshed after one, so a late refresh
+        // still has minutes to show.
+        let entries = (0..<120).map { i in
             ThemeEntry(date: start.addingTimeInterval(Double(i) * 60), settings: settings)
         }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        completion(Timeline(entries: entries, policy: .after(start.addingTimeInterval(3600))))
     }
 }
 
@@ -80,7 +85,7 @@ struct DialClockWidget: Widget {
                 .themedBackground(entry)
         }
         .configurationDisplayName("Dial Clock")
-        .description("The hour, with minutes on a curved scale.")
+        .description("The hour inside a ring that sweeps every minute, minutes on a curved scale, and running seconds.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -117,6 +122,30 @@ struct WaveformWidget: Widget {
         }
         .configurationDisplayName("Waveform")
         .description("A music waveform for the Lock Screen.")
+        .supportedFamilies([.accessoryRectangular])
+    }
+}
+
+struct SecondsRingWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "SecondsRing", provider: ThemeProvider()) { entry in
+            SecondsRingView(date: entry.date)
+                .containerBackground(.clear, for: .widget)
+        }
+        .configurationDisplayName("Seconds Ring")
+        .description("Running seconds inside a ring that fills every minute, for the Lock Screen.")
+        .supportedFamilies([.accessoryCircular])
+    }
+}
+
+struct RunningClockWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "RunningClock", provider: ThemeProvider()) { entry in
+            RunningClockView(date: entry.date)
+                .containerBackground(.clear, for: .widget)
+        }
+        .configurationDisplayName("Running Clock")
+        .description("The time with running seconds and a bar that fills every minute, for the Lock Screen.")
         .supportedFamilies([.accessoryRectangular])
     }
 }

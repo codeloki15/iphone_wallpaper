@@ -51,6 +51,8 @@ struct GalleryView: View {
                     }
                 case .setup:
                     SetupGuideView()
+                case .widgets:
+                    WidgetGalleryView()
                 }
             }
         }

@@ -9,9 +9,12 @@ final class AppRouter: ObservableObject {
     @Published var path: [Route] = []
     /// A wallpaper whose screen should start setup as soon as it shows.
     @Published var setupOnOpen: String?
+    /// The section the widget previews should open at ("lock"), if any.
+    var widgetsAnchor: String?
 
     /// pocketwalls://theme/<id>          opens that wallpaper
     /// pocketwalls://theme/<id>/setup    opens it and starts setup
+    /// pocketwalls://widgets[/lock]      opens the widget previews
     /// pocketwalls://shortcut/<result>   the wallpaper shortcut reporting back
     func handle(_ url: URL) {
         guard url.scheme == "pocketwalls" else { return }
@@ -23,6 +26,9 @@ final class AppRouter: ObservableObject {
             guard let id = parts.first, Catalog.wallpaper(id: id) != nil else { return }
             if parts.dropFirst().first == "setup" { setupOnOpen = id }
             path = [.wallpaper(id)]
+        case "widgets":
+            widgetsAnchor = parts.first
+            path = [.widgets]
         default:
             break
         }

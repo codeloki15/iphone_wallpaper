@@ -132,8 +132,129 @@ private struct WeekStrip: View {
     }
 }
 
-/// The dial: hour on the left, minutes on a curved scale with the current
-/// minute in a pill at three o'clock, and the date to the right.
+// MARK: - Live seconds
+//
+// Widgets can't run their own animations, but the system keeps two kinds of
+// view moving by itself, on the Home Screen and the Lock Screen: timer text
+// and timer-driven progress views. The seconds below are built from those,
+// so they keep running between timeline updates.
+
+/// The minute `date` falls in.
+func minuteInterval(_ date: Date) -> ClosedRange<Date> {
+    let start = Calendar.current.dateInterval(of: .minute, for: date)?.start ?? date
+    return start...start.addingTimeInterval(60)
+}
+
+/// The seconds of the current minute as two ticking digits. Set the font
+/// from outside.
+struct LiveSeconds: View {
+    let date: Date
+
+    var body: some View {
+        // Timer text reads "0:07", and later "1:07". Two hidden digits set
+        // the size; the timer is pinned to their trailing edge and clipped,
+        // so only its last two digits, the seconds, ever show.
+        Text("00")
+            .monospacedDigit()
+            .hidden()
+            .overlay(alignment: .trailing) {
+                Text(minuteInterval(date).lowerBound, style: .timer)
+                    .monospacedDigit()
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize()
+            }
+            .clipped()
+    }
+}
+
+/// True in the widget extension, false in the app.
+let isWidgetExtension = Bundle.main.bundlePath.hasSuffix(".appex")
+
+/// A ring that fills once a minute, like a second hand going round. Color
+/// it with `.tint`.
+struct SecondsRing: View {
+    let date: Date
+
+    var body: some View {
+        if isWidgetExtension {
+            // Only the system can keep a widget moving, and it draws a
+            // timer-driven circular progress view as a ring there.
+            ProgressView(timerInterval: minuteInterval(date), countsDown: false, label: { EmptyView() }, currentValueLabel: { EmptyView() })
+                .progressViewStyle(.circular)
+        } else {
+            // Inside an app the same view draws as a spinner, so the app's
+            // previews draw the ring themselves.
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                GeometryReader { geo in
+                    let width = max(2, min(geo.size.width, geo.size.height) * 0.07)
+                    let seconds = context.date.timeIntervalSince(minuteInterval(context.date).lowerBound)
+                    ZStack {
+                        Circle().stroke(.tint.opacity(0.22), lineWidth: width)
+                        Circle()
+                            .trim(from: 0, to: min(max(seconds / 60, 0), 1))
+                            .stroke(.tint, style: StrokeStyle(lineWidth: width, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                    }
+                    .padding(width / 2)
+                }
+            }
+        }
+    }
+}
+
+/// A bar that fills once a minute.
+struct SecondsBar: View {
+    let date: Date
+
+    var body: some View {
+        ProgressView(timerInterval: minuteInterval(date), countsDown: false, label: { EmptyView() }, currentValueLabel: { EmptyView() })
+            .progressViewStyle(.linear)
+    }
+}
+
+/// Lock Screen (circular): the seconds inside a ring that fills each minute.
+struct SecondsRingView: View {
+    let date: Date
+
+    var body: some View {
+        ZStack {
+            SecondsRing(date: date)
+            LiveSeconds(date: date)
+                .font(.system(size: 22, weight: .semibold, design: .rounded))
+        }
+    }
+}
+
+/// Lock Screen (rectangular): the time with running seconds, over a bar
+/// that fills each minute.
+struct RunningClockView: View {
+    let date: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("\(TimeWords.weekday(date).uppercased()) \u{00B7} \(TimeWords.day(date)) \(TimeWords.month(date).prefix(3).uppercased())")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1)
+                .opacity(0.8)
+                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(date, format: .dateTime.hour(.defaultDigits(amPM: .omitted)).minute())
+                Text(":")
+                LiveSeconds(date: date)
+            }
+            .font(.system(size: 26, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            SecondsBar(date: date)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Dial
+
+/// The dial: the hour inside a ring that sweeps once a minute, minutes on a
+/// curved scale with the current minute in a pill at three o'clock, and the
+/// date with ticking seconds to the right.
 struct DialClockView: View {
     let date: Date
     let colors: WidgetColors
@@ -143,7 +264,8 @@ struct DialClockView: View {
             DialFace(
                 g: DialGeometry(width: Double(geo.size.width), height: Double(geo.size.height)),
                 date: date,
-                ink: colors.ink.color
+                ink: colors.ink.color,
+                accent: colors.accent.color
             )
         }
     }
@@ -187,6 +309,7 @@ private struct DialFace: View {
     let g: DialGeometry
     let date: Date
     let ink: Color
+    let accent: Color
 
     private var minute: Int { Calendar.current.component(.minute, from: date) }
     private var hour: Int {
@@ -201,8 +324,13 @@ private struct DialFace: View {
             ForEach(0..<60, id: \.self) { v in
                 DialMark(g: g, value: v, current: minute, ink: ink)
             }
+            // The ring sits between the hour and the minute scale.
+            SecondsRing(date: date)
+                .tint(accent)
+                .frame(width: g.k * 24, height: g.k * 24)
+                .position(x: g.cx, y: g.cy)
             Text(String(format: "%02d", hour))
-                .font(.system(size: g.k * 13, weight: .light))
+                .font(.system(size: g.k * 11, weight: .light))
                 .foregroundStyle(ink)
                 .position(x: g.cx, y: g.cy)
             Capsule()
@@ -267,6 +395,14 @@ private struct DialDate: View {
             Text(TimeWords.weekday(date).uppercased())
                 .font(.system(size: k * 3.0, weight: .bold))
                 .tracking(k * 0.5)
+            HStack(alignment: .firstTextBaseline, spacing: k * 0.8) {
+                LiveSeconds(date: date)
+                    .font(.system(size: k * 4.4, weight: .medium))
+                Text("SEC")
+                    .font(.system(size: k * 2.2, weight: .semibold))
+                    .tracking(k * 0.5)
+                    .opacity(0.6)
+            }
         }
         .fixedSize()
     }
