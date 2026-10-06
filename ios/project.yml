@@ -32,6 +32,7 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: true
         UIUserInterfaceStyle: Dark
         NSPhotoLibraryAddUsageDescription: Pocket Walls saves wallpapers and icons to your photo library.
         LSApplicationQueriesSchemes:
