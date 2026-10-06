@@ -73,16 +73,34 @@ enum ShortcutsLink {
     /// The shortcut people make once: Get Current Wallpaper → Set Wallpaper.
     static let wallpaperShortcut = "Pocket Walls Wallpaper"
 
-    static func runWallpaperShortcut() {
-        let name = wallpaperShortcut.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        open("shortcuts://run-shortcut?name=\(name)")
+    /// Runs the wallpaper shortcut. Shortcuts then reopens this app at
+    /// pocketwalls://shortcut/success, /cancel or /error, which
+    /// SetupCoordinator handles. `opened` is false if Shortcuts itself
+    /// couldn't be opened.
+    @MainActor
+    static func runWallpaperShortcut(opened: @escaping @MainActor @Sendable (Bool) -> Void) {
+        var components = URLComponents()
+        components.scheme = "shortcuts"
+        components.host = "x-callback-url"
+        components.path = "/run-shortcut"
+        components.queryItems = [
+            URLQueryItem(name: "name", value: wallpaperShortcut),
+            URLQueryItem(name: "x-success", value: "pocketwalls://shortcut/success"),
+            URLQueryItem(name: "x-cancel", value: "pocketwalls://shortcut/cancel"),
+            URLQueryItem(name: "x-error", value: "pocketwalls://shortcut/error"),
+        ]
+        guard let url = components.url else {
+            opened(false)
+            return
+        }
+        UIApplication.shared.open(url, options: [:]) { ok in
+            Task { @MainActor in opened(ok) }
+        }
     }
 
-    static func openShortcuts() { open("shortcuts://") }
-    static func newShortcut() { open("shortcuts://create-shortcut") }
-
-    private static func open(_ string: String) {
-        guard let url = URL(string: string) else { return }
+    @MainActor
+    static func newShortcut() {
+        guard let url = URL(string: "shortcuts://create-shortcut") else { return }
         UIApplication.shared.open(url)
     }
 }

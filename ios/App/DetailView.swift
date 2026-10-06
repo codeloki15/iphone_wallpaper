@@ -12,6 +12,8 @@ struct DetailView: View {
     let look: Look?
 
     @EnvironmentObject private var store: ThemeStore
+    @EnvironmentObject private var router: AppRouter
+    @State private var showSetup = false
     @State private var mode: PreviewMode = .home
     @State private var style: IconStyle = .color
     @State private var preview: UIImage?
@@ -49,17 +51,17 @@ struct DetailView: View {
                 }
 
                 Button {
-                    useTheme()
+                    startSetup()
                 } label: {
-                    Label(isCurrent ? "This is your theme" : "Use this theme",
-                          systemImage: isCurrent ? "checkmark.circle.fill" : "paintbrush.fill")
+                    Label(isCurrent ? "Set up again" : "Set up theme", systemImage: "wand.and.stars")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(isCurrent)
 
-                Text("Your Pocket Walls widgets switch to this theme straight away.")
+                Text(isCurrent
+                     ? "This is your current theme."
+                     : "Changes your widgets and wallpaper, and gets the matching icons ready.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -74,19 +76,6 @@ struct DetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(busy)
-
-                if isCurrent {
-                    Button {
-                        ShortcutsLink.runWallpaperShortcut()
-                    } label: {
-                        Label("Set wallpaper with one tap", systemImage: "bolt.fill").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    Text("Needs the \u{201C}\(ShortcutsLink.wallpaperShortcut)\u{201D} shortcut. The setup guide shows how to make it once.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
 
                 if let status {
                     Text(status)
@@ -116,18 +105,34 @@ struct DetailView: View {
             let image = await ImageCache.shared.wallpaper(wall, width: size.width / 3, height: size.height / 3)
             preview = image
             if let cg = image?.cgImage { luminance = clockAreaLuminance(cg) }
+            startSetupIfLinked()
+        }
+        .onChange(of: router.setupOnOpen) { _, _ in startSetupIfLinked() }
+        .sheet(isPresented: $showSetup) {
+            SetupSheet(wall: wall, style: style)
+                .environmentObject(store)
         }
     }
 
+    /// Applies the theme, sets the wallpaper if the shortcut is ready, and
+    /// shows what's left.
     @MainActor
-    private func useTheme() {
-        store.settings = ThemeSettings(
-            wallpaperID: wall.id,
-            iconStyle: style,
+    private func startSetup() {
+        SetupCoordinator.shared.begin(
+            wall: wall,
+            style: style,
             signature: look?.signature ?? store.settings.signature,
-            clockLuminance: luminance
+            luminance: luminance
         )
-        status = "Theme set. Add the Pocket Walls widgets once, and they'll follow every theme you pick."
+        showSetup = true
+    }
+
+    /// A pocketwalls://theme/<id>/setup link asked for this wallpaper.
+    @MainActor
+    private func startSetupIfLinked() {
+        guard router.setupOnOpen == wall.id else { return }
+        router.setupOnOpen = nil
+        startSetup()
     }
 
     @MainActor

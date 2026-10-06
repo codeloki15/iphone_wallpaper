@@ -70,11 +70,33 @@ redraw in its colors.
 | Folder | What's inside |
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
-| `App/` | Gallery, wallpaper detail with phone preview, setup guide, Photos saving, the Shortcuts action |
+| `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action |
 | `Widgets/` | Widget bundle: Day Sentence, Big Date, Dial Clock, Day Headline, and the Signature and Waveform Lock Screen widgets |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
+
+## How "Set up theme" works
+
+iOS gives apps no way to set the wallpaper, place widgets or change other
+apps' icons, so one button can't do all three silently. The button does as
+much as iOS allows (`App/SetupCoordinator.swift`):
+
+- **Widgets**: saving the theme to the App Group is enough; they redraw.
+- **Wallpaper**: runs the user's "Pocket Walls Wallpaper" shortcut (Get
+  Current Wallpaper → Set Wallpaper Photo) through an x-callback link, and
+  Shortcuts reports back to `pocketwalls://shortcut/...`. The shortcut is
+  made once.
+- **Icons**: `App/IconProfile.swift` builds a configuration profile of web
+  clips, one per app, each with a themed icon and the app's URL scheme.
+  `App/ProfileServer.swift` serves it to Safari from localhost, because iOS
+  only installs profiles that Safari downloads. The user approves it in
+  Settings.
+
+Links into the app: `pocketwalls://theme/<id>` opens a wallpaper, and
+`pocketwalls://theme/<id>/setup` opens it and starts setup. In Debug builds,
+launching with `-openURL <link>` does the same without a prompt, which is
+how the simulator screens are reached from the command line.
 
 ## If something goes wrong
 

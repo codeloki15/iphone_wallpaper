@@ -2,15 +2,15 @@ import SwiftUI
 
 struct GalleryView: View {
     @EnvironmentObject private var store: ThemeStore
+    @EnvironmentObject private var router: AppRouter
     @State private var category = "All"
-    @State private var path: [Route] = []
 
     private var walls: [Wallpaper] {
         category == "All" ? Catalog.all : Catalog.all.filter { $0.category == category }
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack(path: $router.path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     currentTheme

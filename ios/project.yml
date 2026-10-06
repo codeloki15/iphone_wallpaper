@@ -37,6 +37,13 @@ targets:
         NSPhotoLibraryAddUsageDescription: Pocket Walls saves wallpapers and icons to your photo library.
         LSApplicationQueriesSchemes:
           - shortcuts
+          - whatsapp
+          - instagram
+          - youtube
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes:
+              - pocketwalls
     entitlements:
       path: App/PocketWalls.entitlements
       properties:
