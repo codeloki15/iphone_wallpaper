@@ -16,7 +16,9 @@ struct WidgetGalleryView: View {
     var body: some View {
         let settings = store.settings
         let colors = settings.widgetColors
-        TimelineView(.everyMinute) { context in
+        // Tick as often as a moving widget's timeline does, so the previews
+        // move the way the widgets do.
+        TimelineView(.periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: motionStep)) { context in
             let date = context.date
             ScrollViewReader { proxy in
                 ScrollView {

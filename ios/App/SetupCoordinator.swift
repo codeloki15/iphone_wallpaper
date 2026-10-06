@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import WidgetKit
 
 /// Where the app is, and links into it.
 @MainActor
@@ -33,6 +34,14 @@ final class AppRouter: ObservableObject {
         case "icons":
             // pocketwalls://icons/install sends the current theme's icons to Safari.
             if parts.first == "install" { SetupCoordinator.shared.installIcons() }
+        #if DEBUG
+        case "debug":
+            // pocketwalls://debug/entries/<n>: entries per moving-widget timeline.
+            if parts.first == "entries", let n = Int(parts.dropFirst().first ?? "") {
+                AppGroup.defaults.set(n, forKey: "debugMotionEntries")
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        #endif
         default:
             break
         }

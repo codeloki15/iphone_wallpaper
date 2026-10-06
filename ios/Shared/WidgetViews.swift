@@ -153,7 +153,10 @@ struct LiveSeconds: View {
     var body: some View {
         // Timer text reads "0:07", and later "1:07". Two hidden digits set
         // the size; the timer is pinned to their trailing edge and clipped,
-        // so only its last two digits, the seconds, ever show.
+        // so only its last two digits, the seconds, ever show. In a widget,
+        // timer text fills whatever width it is offered and keeps its digits
+        // at the leading edge unless told otherwise, hence the fixed frame
+        // with trailing alignment.
         Text("00")
             .monospacedDigit()
             .hidden()
@@ -161,9 +164,75 @@ struct LiveSeconds: View {
                 Text(minuteInterval(date).lowerBound, style: .timer)
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)
-                    .fixedSize()
+                    .lineLimit(1)
+                    .frame(width: 240, alignment: .trailing)
             }
             .clipped()
+    }
+}
+
+/// Seconds between timeline entries in widgets that move. Views animate
+/// linearly over the same time, so each entry glides into the next. Two
+/// seconds is the longest animation WidgetKit allows.
+let motionStep: TimeInterval = 2
+
+/// How a moving widget should treat the timeline entry it is drawing.
+enum Motion {
+    /// One of a run of entries `motionStep` apart: glide in from the last.
+    case running
+    /// The first of a run: take up position at once, with nothing to glide from.
+    case starting
+    /// Entries here are minutes apart (the moving part of the timeline has
+    /// run out and iOS hasn't supplied a new one yet): show a still version.
+    case resting
+
+    /// The animation into this entry. Pass `wraps: true` where a value
+    /// wraps round (a hand passing twelve, a car re-entering), so it snaps
+    /// instead of running backwards.
+    func animation(wraps: Bool = false) -> Animation? {
+        self == .running && !wraps ? .linear(duration: motionStep) : nil
+    }
+}
+
+/// A second hand for a ring: a track, an arc that grows through the minute,
+/// and a dot that leads it round. Color it with `.tint`.
+struct SecondsSweep: View {
+    let date: Date
+    var motion: Motion = .running
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = min(geo.size.width, geo.size.height)
+            let width = max(2, size * 0.065)
+            let dot = width * 2.1
+            let hourStart = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
+            // Seconds into the hour, so the angle only ever grows.
+            let seconds = date.timeIntervalSince(hourStart)
+            let inMinute = seconds.truncatingRemainder(dividingBy: 60)
+            // The ring's center line is inset so the dot stays inside.
+            let ring = size - dot
+            ZStack {
+                Circle()
+                    .stroke(.tint.opacity(0.22), lineWidth: width)
+                    .frame(width: ring, height: ring)
+                Circle()
+                    .trim(from: 0, to: max(0.002, inMinute / 60))
+                    .stroke(.tint, style: StrokeStyle(lineWidth: width, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: ring, height: ring)
+                    .opacity(motion == .resting ? 0 : 1)
+                    .animation(motion.animation(wraps: inMinute < motionStep), value: date)
+                Circle()
+                    .fill(.tint)
+                    .frame(width: dot, height: dot)
+                    .offset(y: -ring / 2)
+                    .rotationEffect(.degrees(seconds * 6))
+                    .opacity(motion == .resting ? 0 : 1)
+                    .animation(motion.animation(wraps: seconds < motionStep), value: date)
+            }
+            .frame(width: size, height: size)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
@@ -258,12 +327,14 @@ struct RunningClockView: View {
 struct DialClockView: View {
     let date: Date
     let colors: WidgetColors
+    var motion: Motion = .running
 
     var body: some View {
         GeometryReader { geo in
             DialFace(
                 g: DialGeometry(width: Double(geo.size.width), height: Double(geo.size.height)),
                 date: date,
+                motion: motion,
                 ink: colors.ink.color,
                 accent: colors.accent.color
             )
@@ -280,6 +351,8 @@ struct DialGeometry {
     let rm: Double
     /// Left edge of the date block.
     let dateX: Double
+    let width: Double
+    let height: Double
     let maxAngle = 58.0 * Double.pi / 180
     let step = 3.2 * Double.pi / 180
 
@@ -293,6 +366,8 @@ struct DialGeometry {
         cy = height / 2
         rm = k * 22
         dateX = cx + rm + k * 10.5
+        self.width = width
+        self.height = height
     }
 
     func point(_ angle: Double, _ radius: Double) -> CGPoint {
@@ -308,6 +383,7 @@ struct DialGeometry {
 private struct DialFace: View {
     let g: DialGeometry
     let date: Date
+    let motion: Motion
     let ink: Color
     let accent: Color
 
@@ -321,13 +397,11 @@ private struct DialFace: View {
         let pillWidth = g.k * 11
         let pillLeft = g.cx + g.rm - pillWidth * 0.32
         ZStack(alignment: .topLeading) {
-            ForEach(0..<60, id: \.self) { v in
-                DialMark(g: g, value: v, current: minute, ink: ink)
-            }
-            // The ring sits between the hour and the minute scale.
-            SecondsRing(date: date)
+            DialScale(g: g, current: minute, ink: ink)
+            // The second hand's ring sits between the hour and the minute scale.
+            SecondsSweep(date: date, motion: motion)
                 .tint(accent)
-                .frame(width: g.k * 24, height: g.k * 24)
+                .frame(width: g.k * 25, height: g.k * 25)
                 .position(x: g.cx, y: g.cy)
             Text(String(format: "%02d", hour))
                 .font(.system(size: g.k * 11, weight: .light))
@@ -349,35 +423,61 @@ private struct DialFace: View {
     }
 }
 
-/// One minute on the scale: a tick, plus a label every five minutes.
-private struct DialMark: View {
+/// The minute scale. A moving widget stores every timeline entry in full,
+/// and iOS caps the total at about 10 MB, so this is drawn with as few views
+/// as possible: two paths for the ticks, a label every five minutes, and
+/// one gradient mask for the fade toward both ends.
+private struct DialScale: View {
     let g: DialGeometry
-    let value: Int
     let current: Int
     let ink: Color
 
-    var body: some View {
-        let d = g.delta(value, current)
-        let angle = -Double(d) * g.step
-        let major = value % 5 == 0
-        let fade = pow(max(0, 1 - abs(angle) / g.maxAngle), 0.7)
-        let r0 = g.rm + g.k * 3.6
-        let r1 = g.rm + (major ? g.k * 5.6 : g.k * 4.6)
-        // The pill covers the current minute; labels next to it would collide.
-        if abs(angle) <= g.maxAngle && abs(d) > 1 {
-            ZStack(alignment: .topLeading) {
-                Path { p in
-                    p.move(to: g.point(angle, r0))
-                    p.addLine(to: g.point(angle, r1))
-                }
-                .stroke(ink.opacity(fade * (major ? 0.9 : 0.45)), lineWidth: g.k * (major ? 0.45 : 0.3))
-                if major && abs(d) > 3 {
-                    Text(String(format: "%02d", value))
-                        .font(.system(size: g.k * 3.4, weight: .medium))
-                        .foregroundStyle(ink.opacity(fade))
-                        .position(g.point(angle, g.rm))
-                }
+    /// Minutes on the visible part of the scale, as (value, angle).
+    private var marks: [(Int, Double)] {
+        (0..<60).compactMap { v in
+            let d = g.delta(v, current)
+            let angle = -Double(d) * g.step
+            // The pill covers the current minute.
+            return abs(angle) <= g.maxAngle && abs(d) > 1 ? (v, angle) : nil
+        }
+    }
+
+    private func ticks(major: Bool) -> Path {
+        Path { p in
+            for (v, angle) in marks where (v % 5 == 0) == major {
+                p.move(to: g.point(angle, g.rm + g.k * 3.6))
+                p.addLine(to: g.point(angle, g.rm + (major ? g.k * 5.6 : g.k * 4.6)))
             }
+        }
+    }
+
+    var body: some View {
+        let reach = (g.rm + g.k * 5.6) * sin(g.maxAngle)
+        let top = max(0, (g.cy - reach) / g.height)
+        let bottom = min(1, (g.cy + reach) / g.height)
+        let span = bottom - top
+        ZStack(alignment: .topLeading) {
+            ticks(major: false).stroke(ink.opacity(0.5), lineWidth: g.k * 0.3)
+            ticks(major: true).stroke(ink, lineWidth: g.k * 0.45)
+            // Labels next to the pill would collide with it.
+            ForEach(marks.filter { $0.0 % 5 == 0 && abs(g.delta($0.0, current)) > 3 }, id: \.0) { v, angle in
+                Text(String(format: "%02d", v))
+                    .font(.system(size: g.k * 3.4, weight: .medium))
+                    .foregroundStyle(ink)
+                    .position(g.point(angle, g.rm))
+            }
+        }
+        .frame(width: g.width, height: g.height, alignment: .topLeading)
+        .mask {
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: top),
+                    .init(color: .black, location: top + span * 0.42),
+                    .init(color: .black, location: top + span * 0.58),
+                    .init(color: .clear, location: bottom),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
         }
     }
 }

@@ -21,6 +21,7 @@ struct PocketWallsWidgetBundle: WidgetBundle {
 struct ThemeEntry: TimelineEntry {
     let date: Date
     let settings: ThemeSettings
+    var motion: Motion = .resting
 }
 
 struct ThemeProvider: TimelineProvider {
@@ -78,10 +79,60 @@ struct BigDateWidget: Widget {
     }
 }
 
+/// A timeline for widgets that move. WidgetKit animates a widget only when
+/// it goes from one entry to the next, and for two seconds at most, so
+/// continuous motion needs entries `motionStep` apart, each animating
+/// linearly into the next.
+///
+/// iOS stores every entry's view and rejects a timeline over about 10 MB
+/// (it then leaves the widget alone for an hour), so the moving run is
+/// limited: `movingMinutes` must suit how heavy the widget's view is. After
+/// the run come entries a minute apart, drawn still, so the widget stays
+/// correct if iOS is slow to ask for the next timeline.
+struct MotionProvider: TimelineProvider {
+    let movingMinutes: Int
+    private let restingMinutes = 90
+
+    func placeholder(in context: Context) -> ThemeEntry {
+        ThemeEntry(date: Date(), settings: ThemeSettings.load())
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (ThemeEntry) -> Void) {
+        completion(placeholder(in: context))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<ThemeEntry>) -> Void) {
+        let settings = ThemeSettings.load()
+        let now = Date().timeIntervalSinceReferenceDate
+        let start = Date(timeIntervalSinceReferenceDate: (now / motionStep).rounded(.down) * motionStep)
+        var count = Int(Double(movingMinutes) * 60 / motionStep)
+        #if DEBUG
+        // pocketwalls://debug/entries/<n> sets this, to measure archive sizes.
+        let override = AppGroup.defaults.integer(forKey: "debugMotionEntries")
+        if override > 0 { count = override }
+        #endif
+        var entries = (0..<count).map { i in
+            ThemeEntry(
+                date: start.addingTimeInterval(Double(i) * motionStep),
+                settings: settings,
+                motion: i == 0 ? .starting : .running
+            )
+        }
+        let movingEnd = start.addingTimeInterval(Double(count) * motionStep)
+        let firstMinute = Calendar.current.dateInterval(of: .minute, for: movingEnd)?.end ?? movingEnd
+        entries.append(ThemeEntry(date: movingEnd, settings: settings, motion: .resting))
+        for i in 0..<restingMinutes {
+            entries.append(ThemeEntry(date: firstMinute.addingTimeInterval(Double(i) * 60), settings: settings, motion: .resting))
+        }
+        // Ask for the next moving run as this one ends.
+        completion(Timeline(entries: entries, policy: .after(movingEnd)))
+    }
+}
+
 struct DialClockWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "DialClock", provider: ThemeProvider()) { entry in
-            DialClockView(date: entry.date, colors: entry.settings.widgetColors)
+        StaticConfiguration(kind: "DialClock", provider: MotionProvider(movingMinutes: 8)) { entry in
+            DialClockView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
                 .themedBackground(entry)
         }
         .configurationDisplayName("Dial Clock")
