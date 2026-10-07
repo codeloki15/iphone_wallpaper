@@ -24,9 +24,12 @@ extension FrameFigure {
     static let ripples = FrameFigure(key: "Ripples", title: "Ripples", caption: "Rings spreading across still water.", prefix: "PWFigRipples", fps: 8)
     static let sculpture = FrameFigure(key: "Sculpture", title: "Sculpture", caption: "A drilled block turning on the spot.", prefix: "PWFigSculpture", fps: 8)
     // Hairline figures, drawn with the hairline-create skill (tools/hairline).
+    static let deck = FrameFigure(key: "Deck", title: "Record Deck", caption: "A record turning under its tone arm.", prefix: "PWFigDeck", fps: 8)
+    static let cradle = FrameFigure(key: "Cradle", title: "Cradle", caption: "A Newton\u{2019}s cradle, clicking once a second.", prefix: "PWFigCradle", fps: 8)
+    static let lighthouse = FrameFigure(key: "Lighthouse", title: "Lighthouse", caption: "A lighthouse sweeping its beam round every four seconds.", prefix: "PWFigLighthouse", fps: 8)
     static let swell = FrameFigure(key: "Swell", title: "Swell", caption: "A wave rolling across a tray of pillars.", prefix: "PWFigSwell", fps: 8)
 
-    static let all: [FrameFigure] = [globe, ripples, sculpture, swell]
+    static let all: [FrameFigure] = [globe, deck, cradle, lighthouse, ripples, sculpture, swell]
 
     /// What every frame is painted on: PALETTE.plate in tools/hairline/capture.mjs.
     /// A frame covers only the figure's 5:4 stage, so the view paints the

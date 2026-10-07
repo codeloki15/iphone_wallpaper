@@ -146,6 +146,12 @@ frames, each a list of SVG shapes on a stage 400 by 320):
   a Go library that draws lines in space and leaves out what a solid hides.
   `cd tools/ln && go run .` (needs Go; `brew install go`).
 
+The figures so far: Record Deck, Cradle, Lighthouse and Swell are Hairline
+figures (`tools/hairline/figures`); Globe, Ripples and Sculpture are ln
+scenes. A Hairline figure must pass the skill's own `look.mjs` as well as
+`capture.mjs`, which checks what a widget needs: that the figure moves when
+left alone, that its loop closes, that it stays in the frame, and its weight.
+
 `python3 tools/frame_sheet.py <recording.json>` draws a recording's frames
 on one sheet. The recordings themselves are not kept in the repository;
 list the ones that should become widgets in `FRAME_RECORDINGS` in

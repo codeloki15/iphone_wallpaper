@@ -39,8 +39,9 @@ installed copies pick up the update.
 The `ios/` folder holds a native SwiftUI version with real Home Screen and Lock
 Screen widgets that follow the chosen theme, including moving ones (the
 planets, zodiac constellations, race cars, and river maps of the USA, Asia,
-Canada and Japan), eight original watch faces, and live wallpapers saved as
-Live Photos. See [ios/README.md](ios/README.md)
+Canada and Japan), line-art figures that play at eight frames a second (a
+globe, a record deck, a Newton's cradle and more), eight original watch
+faces, and live wallpapers saved as Live Photos. See [ios/README.md](ios/README.md)
 for building it on a Mac with Xcode.
 
 ## Run locally

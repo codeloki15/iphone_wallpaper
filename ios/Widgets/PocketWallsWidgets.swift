@@ -16,6 +16,9 @@ struct PocketWallsWidgetBundle: WidgetBundle {
 struct FigureWidgets: WidgetBundle {
     var body: some Widget {
         FigureGlobeWidget()
+        FigureDeckWidget()
+        FigureCradleWidget()
+        FigureLighthouseWidget()
         FigureRipplesWidget()
         FigureSculptureWidget()
         FigureSwellWidget()
@@ -362,6 +365,18 @@ private func figureConfiguration(_ figure: FrameFigure) -> some WidgetConfigurat
 
 struct FigureGlobeWidget: Widget {
     var body: some WidgetConfiguration { figureConfiguration(.globe) }
+}
+
+struct FigureDeckWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.deck) }
+}
+
+struct FigureCradleWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.cradle) }
+}
+
+struct FigureLighthouseWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.lighthouse) }
 }
 
 struct FigureRipplesWidget: Widget {

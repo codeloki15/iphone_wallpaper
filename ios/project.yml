@@ -40,6 +40,38 @@ targets:
           - PWCarousel.ttf
           - PWDragon.ttf
           - PWEngine.ttf
+          - PWFigCradle00.ttf
+          - PWFigCradle01.ttf
+          - PWFigCradle02.ttf
+          - PWFigCradle03.ttf
+          - PWFigCradle04.ttf
+          - PWFigCradle05.ttf
+          - PWFigCradle06.ttf
+          - PWFigCradle07.ttf
+          - PWFigCradle08.ttf
+          - PWFigCradle09.ttf
+          - PWFigCradle10.ttf
+          - PWFigCradle11.ttf
+          - PWFigCradle12.ttf
+          - PWFigCradle13.ttf
+          - PWFigCradle14.ttf
+          - PWFigCradle15.ttf
+          - PWFigDeck00.ttf
+          - PWFigDeck01.ttf
+          - PWFigDeck02.ttf
+          - PWFigDeck03.ttf
+          - PWFigDeck04.ttf
+          - PWFigDeck05.ttf
+          - PWFigDeck06.ttf
+          - PWFigDeck07.ttf
+          - PWFigDeck08.ttf
+          - PWFigDeck09.ttf
+          - PWFigDeck10.ttf
+          - PWFigDeck11.ttf
+          - PWFigDeck12.ttf
+          - PWFigDeck13.ttf
+          - PWFigDeck14.ttf
+          - PWFigDeck15.ttf
           - PWFigGlobe00.ttf
           - PWFigGlobe01.ttf
           - PWFigGlobe02.ttf
@@ -56,6 +88,22 @@ targets:
           - PWFigGlobe13.ttf
           - PWFigGlobe14.ttf
           - PWFigGlobe15.ttf
+          - PWFigLighthouse00.ttf
+          - PWFigLighthouse01.ttf
+          - PWFigLighthouse02.ttf
+          - PWFigLighthouse03.ttf
+          - PWFigLighthouse04.ttf
+          - PWFigLighthouse05.ttf
+          - PWFigLighthouse06.ttf
+          - PWFigLighthouse07.ttf
+          - PWFigLighthouse08.ttf
+          - PWFigLighthouse09.ttf
+          - PWFigLighthouse10.ttf
+          - PWFigLighthouse11.ttf
+          - PWFigLighthouse12.ttf
+          - PWFigLighthouse13.ttf
+          - PWFigLighthouse14.ttf
+          - PWFigLighthouse15.ttf
           - PWFigRipples00.ttf
           - PWFigRipples01.ttf
           - PWFigRipples02.ttf
@@ -173,6 +221,38 @@ targets:
           - PWCarousel.ttf
           - PWDragon.ttf
           - PWEngine.ttf
+          - PWFigCradle00.ttf
+          - PWFigCradle01.ttf
+          - PWFigCradle02.ttf
+          - PWFigCradle03.ttf
+          - PWFigCradle04.ttf
+          - PWFigCradle05.ttf
+          - PWFigCradle06.ttf
+          - PWFigCradle07.ttf
+          - PWFigCradle08.ttf
+          - PWFigCradle09.ttf
+          - PWFigCradle10.ttf
+          - PWFigCradle11.ttf
+          - PWFigCradle12.ttf
+          - PWFigCradle13.ttf
+          - PWFigCradle14.ttf
+          - PWFigCradle15.ttf
+          - PWFigDeck00.ttf
+          - PWFigDeck01.ttf
+          - PWFigDeck02.ttf
+          - PWFigDeck03.ttf
+          - PWFigDeck04.ttf
+          - PWFigDeck05.ttf
+          - PWFigDeck06.ttf
+          - PWFigDeck07.ttf
+          - PWFigDeck08.ttf
+          - PWFigDeck09.ttf
+          - PWFigDeck10.ttf
+          - PWFigDeck11.ttf
+          - PWFigDeck12.ttf
+          - PWFigDeck13.ttf
+          - PWFigDeck14.ttf
+          - PWFigDeck15.ttf
           - PWFigGlobe00.ttf
           - PWFigGlobe01.ttf
           - PWFigGlobe02.ttf
@@ -189,6 +269,22 @@ targets:
           - PWFigGlobe13.ttf
           - PWFigGlobe14.ttf
           - PWFigGlobe15.ttf
+          - PWFigLighthouse00.ttf
+          - PWFigLighthouse01.ttf
+          - PWFigLighthouse02.ttf
+          - PWFigLighthouse03.ttf
+          - PWFigLighthouse04.ttf
+          - PWFigLighthouse05.ttf
+          - PWFigLighthouse06.ttf
+          - PWFigLighthouse07.ttf
+          - PWFigLighthouse08.ttf
+          - PWFigLighthouse09.ttf
+          - PWFigLighthouse10.ttf
+          - PWFigLighthouse11.ttf
+          - PWFigLighthouse12.ttf
+          - PWFigLighthouse13.ttf
+          - PWFigLighthouse14.ttf
+          - PWFigLighthouse15.ttf
           - PWFigRipples00.ttf
           - PWFigRipples01.ttf
           - PWFigRipples02.ttf

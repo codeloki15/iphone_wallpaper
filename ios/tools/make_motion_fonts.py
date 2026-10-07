@@ -895,6 +895,9 @@ def race_lights(second):
 # The recordings that become widgets, each with a FrameFigure in
 # Shared/FrameFigures.swift. A recording not listed here is left alone.
 FRAME_RECORDINGS = [
+    "hairline/frames/cradle.json",
+    "hairline/frames/deck.json",
+    "hairline/frames/lighthouse.json",
     "hairline/frames/swell.json",
     "ln/frames/globe.json",
     "ln/frames/ripples.json",
