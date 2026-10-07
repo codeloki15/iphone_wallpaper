@@ -1058,6 +1058,9 @@ def build(name, period, outline_glyph=None, svg_defs=None, svg_glyph=None, chunk
 
 
 def main():
+    # Fonts carry the time they were made. A fixed one means running this
+    # again leaves unchanged fonts byte for byte the same.
+    os.environ["SOURCE_DATE_EPOCH"] = "1759795200"
     # Second hands, colored by the widget.
     build("PWHandDot", 60, outline_glyph=needle_hand(0.62, dot_at=0.43))
     build("PWHandNeedle", 60, outline_glyph=needle_hand(0.64))
