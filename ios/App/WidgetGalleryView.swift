@@ -23,7 +23,8 @@ struct WidgetGalleryView: View {
             let date = context.date
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    // Lazy, so only the widgets on screen run their timers.
+                    LazyVStack(alignment: .leading, spacing: 20) {
                         Text("Moving").font(.title3.weight(.bold))
                         homeWidget("Orbit", "Small, Medium or Large", medium, colors, padding: 0, sky: true) {
                             OrbitView(date: date)
@@ -48,6 +49,18 @@ struct WidgetGalleryView: View {
                                 RiversView(region: region, date: date, colors: colors)
                             }
                             .id(region.key == "usa" ? "rivers" : region.key)
+                        }
+
+                        Text("Line art").font(.title3.weight(.bold)).padding(.top, 8).id("figures")
+                        ForEach(FrameFigure.all) { figure in
+                            VStack(alignment: .leading, spacing: 6) {
+                                FrameFigureView(figure: figure, date: date)
+                                    .frame(width: medium.width, height: medium.height)
+                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                Text("\(figure.title) \u{00B7} Medium or Large")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
 
                         Text("Watches").font(.title3.weight(.bold)).padding(.top, 8).id("watches")
@@ -82,7 +95,7 @@ struct WidgetGalleryView: View {
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                // pocketwalls://widgets/<section> opens at "zodiac", "rivers", "watches", "home" or "lock".
+                // pocketwalls://widgets/<section> opens at "zodiac", "rivers", "figures", "watches", "home" or "lock".
                 .onAppear {
                     if let anchor = router.widgetsAnchor { proxy.scrollTo(anchor, anchor: .top) }
                     router.widgetsAnchor = nil

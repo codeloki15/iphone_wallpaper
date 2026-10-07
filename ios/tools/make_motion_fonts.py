@@ -9,7 +9,9 @@ a ligature replaces the whole of what the timer reads ("7:05") with a single
 glyph that draws the scene as it should look at that second: a second hand
 at five past, or every planet where it should be 425 seconds into the hour.
 The timer must count from the top of an hour, and a scene may take up to an
-hour to repeat.
+hour to repeat. Past the hour the timer reads "1:07:05"; the fonts ignore
+the hours, so a timer can be left running for as long as a timeline entry
+lasts.
 
 The text is always exactly one glyph, and so one em, wide and tall: the
 view that shows it (TimerGlyph in MotionFonts.swift) is the same size, which
@@ -37,6 +39,7 @@ from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import newTable
+from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from fontTools.ttLib.tables.S_V_G_ import SVGDocument
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -876,14 +879,96 @@ def race_lights(second):
     return outline([disc(*race_point(x, y), RACE_LIGHT_RADIUS * EM, 20) for x, y in RACE_LIGHTS[:lit]])
 
 
+# ---------------------------------------------------------- frame by frame
+#
+# Timer text changes once a second, but a widget can still play eight frames
+# a second: stack sixteen timers, each started an eighth of a second after
+# the one before, and uncover them in turn (FrameStack in MotionFonts.swift
+# does the uncovering, with masks that are themselves timers in the blink
+# font). Each layer has a font of its own, holding every sixteenth frame.
+#
+# The frames come from two places, in one form: Hairline figures, isometric
+# line drawings made with the hairline-create skill and recorded by
+# tools/hairline/capture.mjs, and true 3D scenes rendered by tools/ln. Run
+# those first; their recordings are not kept in the repository.
+
+# The recordings that become widgets, each with a FrameFigure in
+# Shared/FrameFigures.swift. A recording not listed here is left alone.
+FRAME_RECORDINGS = [
+    "hairline/frames/swell.json",
+    "ln/frames/globe.json",
+    "ln/frames/ripples.json",
+    "ln/frames/sculpture.json",
+]
+# Stroke width in the figure's own units (its frame is 400 wide): about half
+# a point in a medium widget and nine tenths in a large one.
+HAIRLINE_STROKE = 1.15
+
+
+def hairline_frame(shapes, plate):
+    """One recorded frame as SVG for a glyph: the plate, so the frame hides
+    whichever one is under it, and then every shape in paint order."""
+    parts = [f'<rect x="0" y="0" width="400" height="320" fill="{plate}"/>']
+    for shape in shapes:
+        tag = shape["tag"]
+        attributes = [f'{key}="{value}"' for key, value in shape.items() if key not in ("tag", "m", "fill", "stroke", "dash", "o")]
+        attributes.append(f'fill="{shape.get("fill", "none")}"')
+        if "stroke" in shape:
+            attributes.append(f'stroke="{shape["stroke"]}"')
+        if shape.get("dash"):
+            attributes.append('stroke-dasharray="1 3"')
+        if "o" in shape:
+            attributes.append(f'opacity="{shape["o"]}"')
+        element = f'<{tag} {" ".join(attributes)}/>'
+        if "m" in shape:
+            element = f'<g transform="matrix({" ".join(str(n) for n in shape["m"])})">{element}</g>'
+        parts.append(element)
+    # The em is the figure's width, and its top edge is the em's.
+    return (
+        f'<g transform="translate(0 -{EM}) scale({EM / 400:g})" stroke-width="{HAIRLINE_STROKE}" '
+        f'stroke-linejoin="round" stroke-linecap="round">{"".join(parts)}</g>'
+    )
+
+
+def frame_fonts(path):
+    """The fonts for one recording: one for each layer of the stack.
+    Returns what the Swift side needs to know about it."""
+    with open(path, encoding="utf-8") as f:
+        record = json.load(f)
+    name, seconds, fps = record["name"], record["seconds"], record["fps"]
+    frames = [hairline_frame(shapes, record["palette"]["plate"]) for shapes in record["frames"]]
+    layers, turns = 2 * fps, seconds // 2
+    assert seconds % 2 == 0 and 3600 % seconds == 0 and len(frames) == seconds * fps
+    prefix = "PWFig" + name.replace("-", " ").title().replace(" ", "")
+    for layer in range(layers):
+        # A layer is uncovered once every two seconds, for one frame. Its
+        # timer moves on to the next reading while it is covered, so each
+        # glyph serves two readings: an even one and the odd one after it.
+        build(
+            f"{prefix}{layer:02d}", turns, svg_defs="", chunk=1,
+            svg_glyph=lambda turn, layer=layer: frames[(turn * layers + layer) % len(frames)],
+            pick=lambda v: (((v | 1) + 1) // 2) % turns,
+        )
+    return {"name": name, "prefix": prefix, "seconds": seconds, "fps": fps}
+
+
+def blink_glyph(v):
+    """The blink font: the whole em on even readings, nothing on odd ones."""
+    return outline([[(0, 0), (0, EM), (EM, EM), (EM, 0)]]) if v == 0 else TTGlyphPen(None).glyph()
+
+
 # ------------------------------------------------------------------- fonts
 
-def build(name, period, outline_glyph=None, svg_defs=None, svg_glyph=None, chunk=30):
+COMPILED = {}
+
+def build(name, period, outline_glyph=None, svg_defs=None, svg_glyph=None, chunk=30, pick=None):
     """Writes one font. `period` is how many seconds the scene takes to
     repeat; there is one glyph per second of it. Pass `outline_glyph(v)` for
     a font the widget colors, or `svg_defs` and `svg_glyph(v)` for one with
-    its own colors."""
-    assert 3600 % period == 0
+    its own colors. `pick(v)` says which of the `period` glyphs the timer's
+    reading v shows, when that is not simply v % period."""
+    assert pick or 3600 % period == 0
+    pick = pick or (lambda v: v % period)
     frames = [f"f{v:04d}" for v in range(period)]
     names = [".notdef", "blank", "sep"] + DIGITS + frames
     glyphs = {n: TTGlyphPen(None).glyph() for n in names}
@@ -918,21 +1003,39 @@ def build(name, period, outline_glyph=None, svg_defs=None, svg_glyph=None, chunk
     rules = []
     for v in range(3600):
         minutes, seconds = divmod(v, 60)
-        rules.append(f"sub {spell(minutes, 1)} sep {spell(seconds, 2)} by {frames[v % period]};")
-    # If iOS is late bringing the next hour's entry, the timer runs on into
-    # "1:00:07"; the scene has come round to where it started.
-    for seconds in range(60):
-        rules.append(f"sub one sep zero zero sep {spell(seconds, 2)} by {frames[seconds % period]};")
+        rules.append(f"sub {spell(minutes, 1)} sep {spell(seconds, 2)} by {frames[pick(v)]};")
+    digits = "[" + " ".join(DIGITS) + "]"
     fea = (
         "languagesystem DFLT dflt; languagesystem latn dflt;\n"
+        # Past an hour the timer reads "1:02:03", and later "10:02:03". The
+        # scene repeats every hour at most, so only the minutes and seconds
+        # matter: first blank out the hours and their separator, wherever
+        # two more groups follow, and the timer can run for days.
+        "lookup hours {\n"
+        f"  sub {digits}' sep {digits} {digits} sep {digits} {digits} by blank;\n"
+        f"  sub {digits}' {digits} sep {digits} {digits} sep {digits} {digits} by blank;\n"
+        f"  sub {digits}' {digits} {digits} sep {digits} {digits} sep {digits} {digits} by blank;\n"
+        f"  sub sep' {digits} {digits} sep {digits} {digits} by blank;\n"
+        "} hours;\n"
         "lookup frames useExtension {\n" + "\n".join(rules) + "\n} frames;\n"
         # Standard ligatures are what text uses by default; the other two
         # are applied even where an app turns those off.
-        "feature liga { lookup frames; } liga;\n"
-        "feature rlig { lookup frames; } rlig;\n"
-        "feature ccmp { lookup frames; } ccmp;\n"
+        "feature liga { lookup hours; lookup frames; } liga;\n"
+        "feature rlig { lookup hours; lookup frames; } rlig;\n"
+        "feature ccmp { lookup hours; lookup frames; } ccmp;\n"
     )
-    addOpenTypeFeaturesFromString(fb.font, fea)
+    # Compiling 3600 ligatures takes seconds, and many fonts share the
+    # same ones (every layer of a figure, every font with a minute's loop),
+    # so each distinct set is compiled once and its table copied after that.
+    key = (period, tuple(pick(v) for v in range(3600)))
+    if key not in COMPILED:
+        addOpenTypeFeaturesFromString(fb.font, fea)
+        COMPILED[key] = {tag: fb.font.getTableData(tag) for tag in ("GSUB", "GDEF") if tag in fb.font}
+    else:
+        for tag, data in COMPILED[key].items():
+            table = DefaultTable(tag)
+            table.data = data
+            fb.font[tag] = table
 
     if svg_glyph:
         table = newTable("SVG ")
@@ -978,6 +1081,13 @@ def main():
         build("PWRace" + name, len(RACE_RUN), outline_glyph=race_body(car))
     build("PWRaceWheels", len(RACE_RUN), outline_glyph=race_wheels)
     build("PWRaceLights", len(RACE_RUN), outline_glyph=race_lights)
+
+    build("PWBlink", 2, outline_glyph=blink_glyph)
+    recordings = [os.path.join(HERE, f) for f in FRAME_RECORDINGS]
+    missing = [f for f in recordings if not os.path.exists(f)]
+    if missing:
+        print("No recording at", ", ".join(missing), "- run tools/hairline/capture.mjs and tools/ln first; their fonts are left as they are.")
+    print("Figures:", json.dumps([frame_fonts(f) for f in recordings if os.path.exists(f)]))
 
     # Every font must be listed under UIAppFonts in project.yml.
     print("UIAppFonts:", json.dumps(sorted(f for f in os.listdir(OUT) if f.endswith(".ttf"))))

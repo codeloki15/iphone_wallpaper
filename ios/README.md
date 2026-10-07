@@ -71,8 +71,8 @@ redraw in its colors.
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
 | `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action, live wallpapers (`LiveWallpapers.swift`) |
-| `Widgets/` | Widget bundle: the moving widgets (Orbit, Zodiac, Race Day, Rivers of the USA, Asia, Canada and Japan), eight watch faces, Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
-| `tools/` | Python scripts that make the artwork: `make_motion_fonts.py` (the fonts that keep widgets moving), `make_watch_faces.py` (watch dials), `make_zodiac.py` (constellations), `make_space_art.py` (night sky), `make_river_maps.py` (river maps) |
+| `Widgets/` | Widget bundle: the moving widgets (Orbit, Zodiac, Race Day, Rivers of the USA, Asia, Canada and Japan), line-art figures that play at eight frames a second, eight watch faces, Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
+| `tools/` | What makes the artwork: `make_motion_fonts.py` (the fonts that keep widgets moving), `hairline/` and `ln/` (recorded line-art figures), `make_watch_faces.py` (watch dials), `make_zodiac.py` (constellations), `make_space_art.py` (night sky), `make_river_maps.py` (river maps) |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
@@ -97,12 +97,60 @@ Bryce Bostwick's [WidgetAnimation](https://github.com/brycebostwick/WidgetAnimat
 - A glyph is either an outline, which the widget colors like any text (the
   second hands, the river lights, the race cars), or an SVG drawing with
   its own colors (planets, watch scenes, sparkles).
-- The widget needs one timeline entry an hour to restart the timer
-  (`HourlyProvider`); watches have one a minute, for their hour and minute
-  hands. Nothing depends on how often iOS refreshes the widget.
-- Motion is in steps of a second, because that is how often iOS updates
-  timer text. Smoother motion is possible by stacking several timers a
-  fraction of a second apart, each masked to show in turn; not done here.
+- Past the hour the timer reads "1:07:05". A first rule in every font
+  blanks the hours, so only the minutes and seconds choose the glyph and a
+  timer can run all day. A widget therefore needs a timeline entry only
+  now and then (`TimerProvider` gives one every six hours); watches have
+  one a minute, for their hour and minute hands. Nothing depends on how
+  often iOS refreshes the widget.
+- Timer text changes once a second, so most scenes move in steps of a
+  second. The line-art figures play at eight frames a second; see below.
+
+### Eight frames a second
+
+`FrameStack` (in `MotionFonts.swift`) plays a recorded loop faster than
+timer text ticks, the way WidgetAnimation does. There are sixteen layers,
+each a timer started an eighth of a second after the one before, in a font
+of its own that holds every sixteenth frame. Each layer is uncovered for one
+frame every two seconds by a mask that is itself a timer, in a font that is
+a full square on even seconds and empty on odd ones; while a layer is
+covered its timer moves on to its next frame. Every frame paints its whole
+background, so the newest uncovered layer hides the rest.
+
+- A figure costs 33 timers, and each timer is about 5 KB in every stored
+  timeline entry (7 or 8 KB on a phone), which is one reason these widgets
+  have so few entries.
+- A frame covers only the figure's own stage, and iOS gives a widget's
+  container background a sheen, so the view paints the rest of the widget
+  in the frames' plate color itself.
+- Fonts of one figure share their ligature table; `make_motion_fonts.py`
+  compiles each distinct table once, which took the build from minutes to
+  seconds.
+
+The frames come from two tools, both writing the same JSON (a list of
+frames, each a list of SVG shapes on a stage 400 by 320):
+
+- `tools/hairline/capture.mjs` records a **Hairline** figure: an isometric
+  line drawing made with the
+  [hairline-create](https://github.com/lucasmarkes/hairline) skill, which is
+  installed in `.claude/skills` (MIT, Copyright (c) 2026 Lucas Marques). A
+  figure there answers a pointer; a widget has none, so what is recorded is
+  the motion the figure makes when left alone, which must repeat exactly.
+  The script builds the figure with the skill's own `build.mjs`, runs it in
+  headless Chrome on a clock it controls, and reads every frame back with
+  its colors resolved. `node tools/hairline/capture.mjs
+  tools/hairline/figures/swell.js --seconds 4`. It needs the skill's
+  `look.mjs` to have been run once, which installs playwright-core.
+- `tools/ln` renders **true 3D scenes** (a globe, ripples, a turning
+  block) with [ln](https://github.com/fogleman/ln) (MIT, Michael Fogleman),
+  a Go library that draws lines in space and leaves out what a solid hides.
+  `cd tools/ln && go run .` (needs Go; `brew install go`).
+
+`python3 tools/frame_sheet.py <recording.json>` draws a recording's frames
+on one sheet. The recordings themselves are not kept in the repository;
+list the ones that should become widgets in `FRAME_RECORDINGS` in
+`make_motion_fonts.py`, and give each a `FrameFigure` in
+`Shared/FrameFigures.swift` and a widget in `Widgets/`.
 
 Things learned the hard way:
 
@@ -117,12 +165,13 @@ Things learned the hard way:
   with transforms. `<use href>` without `xlink:` draws nothing, and SVG
   text is not available, which is why the roulette wheel's numbers are
   stroked lines.
-- If iOS is late with the next hour's entry the timer reads "1:00:07"; the
-  fonts cover that first minute.
+- **A font tool that compiles a ligature per second of the hour is slow**
+  unless tables are shared; see above.
 
-Checked so far: the scenes run in the app, and show the right frame as real
-widgets in the simulator. The simulator never advances a widget's timer, so
-the ticking itself can only be seen on a phone.
+Checked so far: the scenes run in the app (a screen recording of the
+simulator shows the figures' frames in order, eight a second), and show
+the right frame as real widgets in the simulator. The simulator never
+advances a widget's timer, so the motion itself can only be seen on a phone.
 
 ### What was tried first
 

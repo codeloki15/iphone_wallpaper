@@ -6,8 +6,19 @@ import WidgetKit
 struct PocketWallsWidgetBundle: WidgetBundle {
     var body: some Widget {
         MovingWidgets().body
+        FigureWidgets().body
         WatchWidgets().body
         ClockWidgets().body
+    }
+}
+
+/// Line-art figures that play at eight frames a second (FrameFigures.swift).
+struct FigureWidgets: WidgetBundle {
+    var body: some Widget {
+        FigureGlobeWidget()
+        FigureRipplesWidget()
+        FigureSculptureWidget()
+        FigureSwellWidget()
     }
 }
 
@@ -115,10 +126,12 @@ struct BigDateWidget: Widget {
     }
 }
 
-/// A timeline for a widget whose motion is a font (MotionFonts.swift). iOS
-/// keeps that moving by itself, so the widget needs only an entry an hour,
-/// to restart the font's timer from the top of the hour.
-struct HourlyProvider: TimelineProvider {
+/// A timeline for a widget whose motion is all timer text in a motion font
+/// (MotionFonts.swift). iOS keeps that moving by itself, and the fonts go
+/// on working however many hours the timer has run, so the widget needs an
+/// entry only now and then. Fewer entries also keep the stored timeline
+/// small: each one holds every timer in the widget, and a figure has 33.
+struct TimerProvider: TimelineProvider {
     func placeholder(in context: Context) -> ThemeEntry {
         ThemeEntry(date: Date(), settings: ThemeSettings.load())
     }
@@ -130,9 +143,9 @@ struct HourlyProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<ThemeEntry>) -> Void) {
         let settings = ThemeSettings.load()
         let start = hourStart(Date())
-        // A day of entries, refreshed after half of it.
-        let entries = (0..<24).map { i in
-            ThemeEntry(date: start.addingTimeInterval(Double(i) * 3600), settings: settings)
+        // An entry every six hours for a day, refreshed after half of it.
+        let entries = (0..<4).map { i in
+            ThemeEntry(date: start.addingTimeInterval(Double(i) * 6 * 3600), settings: settings)
         }
         completion(Timeline(entries: entries, policy: .after(start.addingTimeInterval(12 * 3600))))
     }
@@ -214,7 +227,7 @@ struct RunningClockWidget: Widget {
 
 struct OrbitWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "Orbit", provider: HourlyProvider()) { entry in
+        StaticConfiguration(kind: "Orbit", provider: TimerProvider()) { entry in
             OrbitView(date: entry.date)
                 .containerBackground(for: .widget) { SpaceSky() }
         }
@@ -261,9 +274,9 @@ struct ZodiacProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: ZodiacIntent, in context: Context) async -> Timeline<ZodiacEntry> {
-        // The stars twinkle by themselves (a motion font), so the widget
-        // needs only an entry an hour, as in HourlyProvider. The sign is
-        // worked out for each, so it changes on the right midnight.
+        // The stars twinkle by themselves (a motion font). There is an
+        // entry an hour all the same, because the sign is worked out for
+        // each one, and so changes within the hour of the right midnight.
         let start = hourStart(Date())
         let entries = (0..<24).map { entry(configuration, at: start.addingTimeInterval(Double($0) * 3600)) }
         return Timeline(entries: entries, policy: .after(start.addingTimeInterval(12 * 3600)))
@@ -289,7 +302,7 @@ struct ZodiacWidget: Widget {
 
 struct RaceWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "Race", provider: HourlyProvider()) { entry in
+        StaticConfiguration(kind: "Race", provider: TimerProvider()) { entry in
             RaceView(date: entry.date, colors: entry.settings.widgetColors)
                 .themedBackground(entry)
         }
@@ -307,7 +320,7 @@ private func riversConfiguration(kind: String, region: RiverRegion) -> some Widg
     // is built by interpolating into a literal.
     let name: String = "Rivers of " + region.title
     let description: String = "The great rivers of " + region.title + ", with lights drifting from source to mouth."
-    return StaticConfiguration(kind: kind, provider: HourlyProvider()) { entry in
+    return StaticConfiguration(kind: kind, provider: TimerProvider()) { entry in
         RiversView(region: region, date: entry.date, colors: entry.settings.widgetColors)
             .themedBackground(entry)
     }
@@ -330,6 +343,37 @@ struct RiversCanadaWidget: Widget {
 
 struct RiversJapanWidget: Widget {
     var body: some WidgetConfiguration { riversConfiguration(kind: "RiversJapan", region: .japan) }
+}
+
+// MARK: - Figures
+
+private func figureConfiguration(_ figure: FrameFigure) -> some WidgetConfiguration {
+    let name: String = figure.title
+    let description: String = figure.caption
+    return StaticConfiguration(kind: "Figure" + figure.key, provider: TimerProvider()) { entry in
+        FrameFigureView(figure: figure, date: entry.date)
+            .containerBackground(for: .widget) { FrameFigure.plate }
+    }
+    .configurationDisplayName(name)
+    .description(description)
+    .supportedFamilies([.systemMedium, .systemLarge])
+    .contentMarginsDisabled()
+}
+
+struct FigureGlobeWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.globe) }
+}
+
+struct FigureRipplesWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.ripples) }
+}
+
+struct FigureSculptureWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.sculpture) }
+}
+
+struct FigureSwellWidget: Widget {
+    var body: some WidgetConfiguration { figureConfiguration(.swell) }
 }
 
 // MARK: - Watch faces

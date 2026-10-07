@@ -36,9 +36,74 @@ targets:
         UIUserInterfaceStyle: Dark
         # The motion fonts in Shared/Fonts (tools/make_motion_fonts.py prints this list).
         UIAppFonts:
+          - PWBlink.ttf
           - PWCarousel.ttf
           - PWDragon.ttf
           - PWEngine.ttf
+          - PWFigGlobe00.ttf
+          - PWFigGlobe01.ttf
+          - PWFigGlobe02.ttf
+          - PWFigGlobe03.ttf
+          - PWFigGlobe04.ttf
+          - PWFigGlobe05.ttf
+          - PWFigGlobe06.ttf
+          - PWFigGlobe07.ttf
+          - PWFigGlobe08.ttf
+          - PWFigGlobe09.ttf
+          - PWFigGlobe10.ttf
+          - PWFigGlobe11.ttf
+          - PWFigGlobe12.ttf
+          - PWFigGlobe13.ttf
+          - PWFigGlobe14.ttf
+          - PWFigGlobe15.ttf
+          - PWFigRipples00.ttf
+          - PWFigRipples01.ttf
+          - PWFigRipples02.ttf
+          - PWFigRipples03.ttf
+          - PWFigRipples04.ttf
+          - PWFigRipples05.ttf
+          - PWFigRipples06.ttf
+          - PWFigRipples07.ttf
+          - PWFigRipples08.ttf
+          - PWFigRipples09.ttf
+          - PWFigRipples10.ttf
+          - PWFigRipples11.ttf
+          - PWFigRipples12.ttf
+          - PWFigRipples13.ttf
+          - PWFigRipples14.ttf
+          - PWFigRipples15.ttf
+          - PWFigSculpture00.ttf
+          - PWFigSculpture01.ttf
+          - PWFigSculpture02.ttf
+          - PWFigSculpture03.ttf
+          - PWFigSculpture04.ttf
+          - PWFigSculpture05.ttf
+          - PWFigSculpture06.ttf
+          - PWFigSculpture07.ttf
+          - PWFigSculpture08.ttf
+          - PWFigSculpture09.ttf
+          - PWFigSculpture10.ttf
+          - PWFigSculpture11.ttf
+          - PWFigSculpture12.ttf
+          - PWFigSculpture13.ttf
+          - PWFigSculpture14.ttf
+          - PWFigSculpture15.ttf
+          - PWFigSwell00.ttf
+          - PWFigSwell01.ttf
+          - PWFigSwell02.ttf
+          - PWFigSwell03.ttf
+          - PWFigSwell04.ttf
+          - PWFigSwell05.ttf
+          - PWFigSwell06.ttf
+          - PWFigSwell07.ttf
+          - PWFigSwell08.ttf
+          - PWFigSwell09.ttf
+          - PWFigSwell10.ttf
+          - PWFigSwell11.ttf
+          - PWFigSwell12.ttf
+          - PWFigSwell13.ttf
+          - PWFigSwell14.ttf
+          - PWFigSwell15.ttf
           - PWHandDot.ttf
           - PWHandLong.ttf
           - PWHandNeedle.ttf
@@ -104,9 +169,74 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
         UIAppFonts:
+          - PWBlink.ttf
           - PWCarousel.ttf
           - PWDragon.ttf
           - PWEngine.ttf
+          - PWFigGlobe00.ttf
+          - PWFigGlobe01.ttf
+          - PWFigGlobe02.ttf
+          - PWFigGlobe03.ttf
+          - PWFigGlobe04.ttf
+          - PWFigGlobe05.ttf
+          - PWFigGlobe06.ttf
+          - PWFigGlobe07.ttf
+          - PWFigGlobe08.ttf
+          - PWFigGlobe09.ttf
+          - PWFigGlobe10.ttf
+          - PWFigGlobe11.ttf
+          - PWFigGlobe12.ttf
+          - PWFigGlobe13.ttf
+          - PWFigGlobe14.ttf
+          - PWFigGlobe15.ttf
+          - PWFigRipples00.ttf
+          - PWFigRipples01.ttf
+          - PWFigRipples02.ttf
+          - PWFigRipples03.ttf
+          - PWFigRipples04.ttf
+          - PWFigRipples05.ttf
+          - PWFigRipples06.ttf
+          - PWFigRipples07.ttf
+          - PWFigRipples08.ttf
+          - PWFigRipples09.ttf
+          - PWFigRipples10.ttf
+          - PWFigRipples11.ttf
+          - PWFigRipples12.ttf
+          - PWFigRipples13.ttf
+          - PWFigRipples14.ttf
+          - PWFigRipples15.ttf
+          - PWFigSculpture00.ttf
+          - PWFigSculpture01.ttf
+          - PWFigSculpture02.ttf
+          - PWFigSculpture03.ttf
+          - PWFigSculpture04.ttf
+          - PWFigSculpture05.ttf
+          - PWFigSculpture06.ttf
+          - PWFigSculpture07.ttf
+          - PWFigSculpture08.ttf
+          - PWFigSculpture09.ttf
+          - PWFigSculpture10.ttf
+          - PWFigSculpture11.ttf
+          - PWFigSculpture12.ttf
+          - PWFigSculpture13.ttf
+          - PWFigSculpture14.ttf
+          - PWFigSculpture15.ttf
+          - PWFigSwell00.ttf
+          - PWFigSwell01.ttf
+          - PWFigSwell02.ttf
+          - PWFigSwell03.ttf
+          - PWFigSwell04.ttf
+          - PWFigSwell05.ttf
+          - PWFigSwell06.ttf
+          - PWFigSwell07.ttf
+          - PWFigSwell08.ttf
+          - PWFigSwell09.ttf
+          - PWFigSwell10.ttf
+          - PWFigSwell11.ttf
+          - PWFigSwell12.ttf
+          - PWFigSwell13.ttf
+          - PWFigSwell14.ttf
+          - PWFigSwell15.ttf
           - PWHandDot.ttf
           - PWHandLong.ttf
           - PWHandNeedle.ttf

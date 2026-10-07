@@ -19,3 +19,8 @@ tools/.cache/
 
 # Python caches from running the tools
 __pycache__/
+
+# Recordings and check pages made by tools/hairline and tools/ln
+tools/hairline/frames/
+tools/hairline/pages/
+tools/ln/frames/
