@@ -171,64 +171,23 @@ struct LiveSeconds: View {
     }
 }
 
-/// Seconds between timeline entries in widgets that move. Views animate
-/// linearly over the same time, so each entry glides into the next. Two
-/// seconds is the longest animation WidgetKit allows.
-let motionStep: TimeInterval = 2
-
-/// How a moving widget should treat the timeline entry it is drawing.
-enum Motion {
-    /// One of a run of entries `motionStep` apart: glide in from the last.
-    case running
-    /// The first of a run: take up position at once, with nothing to glide from.
-    case starting
-    /// Entries here are minutes apart (the moving part of the timeline has
-    /// run out and iOS hasn't supplied a new one yet): show a still version.
-    case resting
-
-    /// The animation into this entry. Pass `wraps: true` where a value
-    /// wraps round (a hand passing twelve, a car re-entering), so it snaps
-    /// instead of running backwards.
-    func animation(wraps: Bool = false) -> Animation? {
-        self == .running && !wraps ? .linear(duration: motionStep) : nil
-    }
-}
-
 /// A second hand for a ring: a track, an arc that grows through the minute,
-/// and a dot that leads it round. Color it with `.tint`.
+/// and a dot that leads it round, ticking once a second. Color it with `.tint`.
 struct SecondsSweep: View {
     let date: Date
-    var motion: Motion = .running
 
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
-            let width = max(2, size * 0.065)
-            let dot = width * 2.1
-            let hourStart = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
-            // Seconds into the hour, so the angle only ever grows.
-            let seconds = date.timeIntervalSince(hourStart)
-            let inMinute = seconds.truncatingRemainder(dividingBy: 60)
-            // The ring's center line is inset so the dot stays inside.
-            let ring = size - dot
+            // The same proportions as the font's arc (tools/make_motion_fonts.py).
+            let width = size * 0.065
+            let ring = size - width * 2.1
             ZStack {
                 Circle()
                     .stroke(.tint.opacity(0.22), lineWidth: width)
                     .frame(width: ring, height: ring)
-                Circle()
-                    .trim(from: 0, to: max(0.002, inMinute / 60))
-                    .stroke(.tint, style: StrokeStyle(lineWidth: width, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: ring, height: ring)
-                    .opacity(motion == .resting ? 0 : 1)
-                    .animation(motion.animation(wraps: inMinute < motionStep), value: date)
-                Circle()
-                    .fill(.tint)
-                    .frame(width: dot, height: dot)
-                    .offset(y: -ring / 2)
-                    .rotationEffect(.degrees(seconds * 6))
-                    .opacity(motion == .resting ? 0 : 1)
-                    .animation(motion.animation(wraps: seconds < motionStep), value: date)
+                TimerGlyph(font: .sweep, date: date, size: size)
+                    .foregroundStyle(.tint)
             }
             .frame(width: size, height: size)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -327,14 +286,12 @@ struct RunningClockView: View {
 struct DialClockView: View {
     let date: Date
     let colors: WidgetColors
-    var motion: Motion = .running
 
     var body: some View {
         GeometryReader { geo in
             DialFace(
                 g: DialGeometry(width: Double(geo.size.width), height: Double(geo.size.height)),
                 date: date,
-                motion: motion,
                 ink: colors.ink.color,
                 accent: colors.accent.color
             )
@@ -383,7 +340,6 @@ struct DialGeometry {
 private struct DialFace: View {
     let g: DialGeometry
     let date: Date
-    let motion: Motion
     let ink: Color
     let accent: Color
 
@@ -399,7 +355,7 @@ private struct DialFace: View {
         ZStack(alignment: .topLeading) {
             DialScale(g: g, current: minute, ink: ink)
             // The second hand's ring sits between the hour and the minute scale.
-            SecondsSweep(date: date, motion: motion)
+            SecondsSweep(date: date)
                 .tint(accent)
                 .frame(width: g.k * 25, height: g.k * 25)
                 .position(x: g.cx, y: g.cy)

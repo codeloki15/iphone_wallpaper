@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import WidgetKit
 
 /// Where the app is, and links into it.
 @MainActor
@@ -40,11 +39,6 @@ final class AppRouter: ObservableObject {
             path = [.live(id)]
         #if DEBUG
         case "debug":
-            // pocketwalls://debug/entries/<n>: entries per moving-widget timeline.
-            if parts.first == "entries", let n = Int(parts.dropFirst().first ?? "") {
-                AppGroup.defaults.set(n, forKey: "debugMotionEntries")
-                WidgetCenter.shared.reloadAllTimelines()
-            }
             // pocketwalls://debug/live/<id>: makes that Live Photo, keeps a
             // copy of its two files in Documents, saves it, and logs the result.
             if parts.first == "live", let scene = LiveScene.scene(id: parts.dropFirst().first ?? "") {

@@ -7,7 +7,8 @@ top (Shared/WatchFaces.swift). The designs are original, with no brand
 names or logos, and the numerals are a stroke font defined here, so no
 typeface is embedded.
 
-Writes Shared/WidgetArt.xcassets/watch-<name>.imageset.
+Writes Shared/WidgetArt.xcassets/watch-<name>.imageset, and a smaller
+watch-<name>-small.imageset for small widgets.
 Run from the ios folder:  python3 tools/make_watch_faces.py
 Needs Pillow (pip install pillow).
 """
@@ -20,7 +21,8 @@ from PIL import Image, ImageDraw, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(os.path.dirname(HERE), "Shared", "WidgetArt.xcassets")
 
-FINAL = 720          # pixels: 240 pt at 3x
+FINAL = 720          # pixels, for a large widget
+SMALL = 480          # pixels, for a small widget: about its size on screen at 3x
 SS = 3               # supersampling
 SIZE = FINAL * SS
 C = SIZE / 2
@@ -188,16 +190,20 @@ class Dial:
         self.d.rounded_rectangle((x - w, y - h, x + w, y + h), radius=0.008 * R, fill=(248, 247, 242))
 
     def save(self, name):
-        out = self.img.resize((FINAL, FINAL), Image.LANCZOS)
-        folder = os.path.join(ASSETS, name + ".imageset")
-        os.makedirs(folder, exist_ok=True)
-        out.save(os.path.join(folder, name + "@3x.png"), optimize=True)
-        with open(os.path.join(folder, "Contents.json"), "w") as f:
-            json.dump({
-                "images": [{"idiom": "universal", "scale": "3x", "filename": name + "@3x.png"}],
-                "info": {"author": "xcode", "version": 1},
-            }, f, indent=2)
-        print(f"  {name}: {os.path.getsize(os.path.join(folder, name + '@3x.png')) // 1024} KB")
+        # Two sizes. WidgetKit won't draw a widget holding an image much
+        # larger than itself (about twice its height in pixels), so a small
+        # widget gets a picture of its own.
+        for asset, pixels in ((name, FINAL), (name + "-small", SMALL)):
+            out = self.img.resize((pixels, pixels), Image.LANCZOS)
+            folder = os.path.join(ASSETS, asset + ".imageset")
+            os.makedirs(folder, exist_ok=True)
+            out.save(os.path.join(folder, asset + "@3x.png"), optimize=True)
+            with open(os.path.join(folder, "Contents.json"), "w") as f:
+                json.dump({
+                    "images": [{"idiom": "universal", "scale": "3x", "filename": asset + "@3x.png"}],
+                    "info": {"author": "xcode", "version": 1},
+                }, f, indent=2)
+            print(f"  {asset}: {os.path.getsize(os.path.join(folder, asset + '@3x.png')) // 1024} KB")
 
 
 # ---- a stroke font for digits, on a 1 x 1.6 box, y down
@@ -401,7 +407,158 @@ def orrery():
     d.save("watch-orrery")
 
 
+# ---- faces with moving scenes
+#
+# For these four the image is only the stage: the case, the bezel and
+# whatever stays still. The scene itself (pistons, a roulette wheel, an
+# orrery, dragons) is a motion font made by tools/make_motion_fonts.py.
+
+def gem_bezel(dial, r0, r1, count, base=(232, 237, 246)):
+    """A bezel set with rectangular stones, each catching the light its own way."""
+    step = 360 / count
+    for i in range(count):
+        a0, a1 = i * step + step * 0.07, (i + 1) * step - step * 0.07
+        glint = 0.80 + 0.2 * math.sin(i * 2.4) * math.cos(i * 0.7) + (0.14 if i % 7 == 3 else 0)
+        color = shade(base, max(0.58, min(1.08, glint)))
+        dial.d.polygon([P(a0, r0), P(a0, r1), P(a1, r1), P(a1, r0)], fill=color)
+        # The table: the flat top of the stone, inside its sloping sides.
+        inset_a, inset_r = (a1 - a0) * 0.24, (r1 - r0) * 0.24
+        table = [P(a0 + inset_a, r0 + inset_r), P(a0 + inset_a, r1 - inset_r), P(a1 - inset_a, r1 - inset_r), P(a1 - inset_a, r0 + inset_r)]
+        dial.d.polygon(table, fill=shade(color, 1.14))
+        dial.d.line([table[0], table[2]], fill=shade(color, 0.86), width=SS)
+
+
+def upright_number(dial, text, x, y, height, color, weight=0.16):
+    """Digits the right way up, centered on a point given in case radii."""
+    unit = height * R / 1.6
+    advance = 1.22
+    total = (len(text) - 1) * advance + 1
+    width = max(1, round(weight * unit))
+    for i, ch in enumerate(text):
+        for line in DIGITS[ch]:
+            pts = [(C + x * R + (lx + i * advance - total / 2) * unit, C + y * R + (ly - 0.8) * unit) for lx, ly in line]
+            dial.d.line(pts, fill=color, width=width, joint="curve")
+
+
+def engine():
+    """A watch with an engine in it: a rev counter for the seconds, and a
+    row of cylinders whose pistons the font drives."""
+    gun = (104, 108, 118)
+    red = (218, 44, 46)
+    d = Dial()
+    case(d, gun)
+    d.conic(0.86, 0.90, lambda a: shade(red, 0.72 + 0.28 * math.cos(math.radians(2 * (a - 30)))))
+    d.disc(0.86, (10, 11, 13))
+    d.conic(0, 0.86, lambda a: shade((23, 24, 29), 0.82 + 0.26 * math.cos(math.radians(2 * (a - 40)))))
+    d.vignette(0.86, 0.4)
+    for m in range(60):
+        d.tick(m * 6, 0.805, 0.848, WHITE, 0.012 if m % 5 == 0 else 0.005)
+    for h in range(12):
+        d.baton(h * 30, 0.70, 0.79, 0.042, WHITE)
+        d.baton(h * 30, 0.70, 0.728, 0.042, red)
+
+    # The rev counter: the red needle (in the font) crosses it once a minute.
+    gx, gy = 0.0, -0.36
+    d.disc(0.262, shade(gun, 0.85), (gx, gy))
+    d.disc(0.243, (7, 8, 10), (gx, gy))
+    for second in range(61):
+        a = math.radians(-120 + 4 * second)
+        long = second % 10 == 0
+        r0, r1 = (0.195 if long else 0.215), 0.238
+        color = red if second >= 50 else WHITE
+        d.d.line(
+            [(C + (gx + math.sin(a) * r0) * R, C + (gy - math.cos(a) * r0) * R), (C + (gx + math.sin(a) * r1) * R, C + (gy - math.cos(a) * r1) * R)],
+            fill=color, width=max(1, round((0.012 if long else 0.005) * R)))
+        if long:
+            upright_number(d, str(second // 10), gx + math.sin(a) * 0.155, gy - math.cos(a) * 0.155, 0.05, color)
+
+    # The engine bay: eight glass cylinders over a crankcase.
+    x0, x1, y0, y1 = -0.46, 0.46, 0.14, 0.60
+    box = (C + x0 * R, C + y0 * R, C + x1 * R, C + y1 * R)
+    d.d.rounded_rectangle((box[0] - 0.014 * R, box[1] - 0.014 * R, box[2] + 0.014 * R, box[3] + 0.014 * R), radius=0.05 * R, fill=shade(gun, 0.8))
+    d.d.rounded_rectangle(box, radius=0.04 * R, fill=(15, 16, 20))
+    d.d.rectangle((C + (x0 + 0.02) * R, C + 0.475 * R, C + (x1 - 0.02) * R, C + (y1 - 0.02) * R), fill=(26, 28, 34))
+    for i in range(8):
+        cx = -0.3675 + i * 0.105
+        d.d.rectangle((C + (cx - 0.045) * R, C + 0.165 * R, C + (cx + 0.045) * R, C + 0.205 * R), fill=shade(gun, 0.95))
+        d.d.rectangle((C + (cx - 0.008) * R, C + 0.15 * R, C + (cx + 0.008) * R, C + 0.17 * R), fill=red)
+        d.d.rectangle((C + (cx - 0.0435) * R, C + 0.205 * R, C + (cx + 0.0435) * R, C + 0.475 * R), fill=(30, 34, 42), outline=(128, 138, 156), width=max(1, round(0.005 * R)))
+        d.d.line([(C + (cx - 0.03) * R, C + 0.215 * R), (C + (cx - 0.03) * R, C + 0.465 * R)], fill=(86, 94, 110), width=max(1, round(0.006 * R)))
+    d.save("watch-engine")
+
+
+def roulette():
+    """A casino watch. The image is the case, a bezel of stones and the
+    track the ball runs on; the wheel and the ball are the font."""
+    d = Dial()
+    case(d, STEEL)
+    gem_bezel(d, 0.872, 0.978, 44)
+    d.metal(0.842, 0.872, STEEL, light=20)
+    d.conic(0.775, 0.842, lambda a: shade((104, 58, 28), 0.74 + 0.34 * math.cos(math.radians(2 * (a - 30)))))
+    d.circle(0.842, (58, 30, 14), 0.006)
+    d.disc(0.775, (12, 12, 14))
+    d.save("watch-roulette")
+
+
+def carousel():
+    """A night-blue dial scattered with gold flecks, for an orrery whose
+    four arms the font carries round."""
+    import random
+    rng = random.Random(11)
+    d = Dial()
+    case(d, STEEL)
+    d.metal(0.855, 0.90, STEEL, light=20)
+    blue = hexc("#0b1a52")
+    d.disc(0.855, blue)
+    d.conic(0, 0.855, lambda a: shade(blue, 0.74 + 0.32 * math.cos(math.radians(2 * (a - 55)))))
+    for _ in range(520):
+        r, a = 0.84 * math.sqrt(rng.random()), rng.random() * 360
+        x, y = P(a, r)
+        size = (0.0035 + 0.007 * rng.random() ** 3) * R
+        glint = rng.choice([(255, 232, 178), (255, 246, 222), (214, 228, 255)])
+        d.d.ellipse((x - size, y - size, x + size, y + size), fill=glint + (round(90 + 165 * rng.random()),))
+    d.vignette(0.855, 0.5)
+    for m in range(60):
+        if m % 5:
+            x, y = P(m * 6, 0.80)
+            d.d.ellipse((x - 0.008 * R, y - 0.008 * R, x + 0.008 * R, y + 0.008 * R), fill=(196, 204, 222))
+    for h in range(12):
+        d.applied_baton(h * 30, 0.725, 0.825, 0.05 if h % 3 == 0 else 0.034, STEEL, (250, 250, 252))
+    # The circle the four arms' ends follow.
+    d.circle(0.50, (120, 136, 190), 0.004)
+    d.save("watch-carousel")
+
+
+def dragon():
+    """Red lacquer in a rose-gold case, with a stone at every hour. Two
+    dragons (the font) circle the well in the middle."""
+    rose = (224, 166, 130)
+    red = hexc("#7d0f1f")
+    d = Dial()
+    case(d, rose)
+    d.metal(0.84, 0.90, rose, light=20, contrast=0.4)
+    d.disc(0.84, red)
+    d.conic(0, 0.84, lambda a: shade(red, 0.72 + 0.36 * math.cos(math.radians(2 * (a - 40)))))
+    # Engine-turned rings.
+    for k in range(1, 28):
+        d.circle(0.03 * k, shade(red, 0.62), 0.004)
+    d.vignette(0.84, 0.55)
+    for h in range(12):
+        angle = h * 30
+        long = h % 3 == 0
+        tip, base = (0.70 if long else 0.735), 0.815
+        for scale, color in ((1.0, shade(rose, 0.9)), (0.74, (246, 248, 252))):
+            d.triangle(angle, base - (base - tip) * scale, base, 0.034 * scale, color)
+            x, y = P(angle, base)
+            rad = 0.034 * scale * R
+            d.d.ellipse((x - rad, y - rad, x + rad, y + rad), fill=color)
+    # The well the cage turns in.
+    d.disc(0.235, shade(rose, 0.8))
+    d.disc(0.215, (16, 8, 10))
+    d.save("watch-dragon")
+
+
 if __name__ == "__main__":
     os.makedirs(ASSETS, exist_ok=True)
-    for make in (diver, gmt, chrono, orrery):
+    for make in (diver, gmt, chrono, orrery, engine, roulette, carousel, dragon):
         make()

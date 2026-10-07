@@ -16,20 +16,30 @@ struct WidgetGalleryView: View {
     var body: some View {
         let settings = store.settings
         let colors = settings.widgetColors
-        // Tick as often as a moving widget's timeline does, so the previews
-        // move the way the widgets do.
-        TimelineView(.periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: motionStep)) { context in
+        // Whatever moves by the second is timer text that iOS keeps running,
+        // here as in the widgets, so the views only need redrawing when
+        // the minute changes.
+        TimelineView(.everyMinute) { context in
             let date = context.date
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Moving").font(.title3.weight(.bold))
-                        homeWidget("Orbit", "Small, Medium or Large", medium, colors, padding: 0) {
-                            OrbitView(date: date, colors: colors)
+                        homeWidget("Orbit", "Small, Medium or Large", medium, colors, padding: 0, sky: true) {
+                            OrbitView(date: date)
                         }
-                        homeWidget("Thunderstorm", "Small or Medium", medium, colors, padding: 0, sky: true) {
-                            StormView(date: date, colors: colors)
+                        HStack(alignment: .top, spacing: 16) {
+                            homeWidget("Orbit", "Small", small, colors, padding: 0, sky: true) {
+                                OrbitView(date: date)
+                            }
+                            homeWidget("Zodiac", "Small", small, colors, padding: 0, sky: true) {
+                                ZodiacView(sign: .current(on: date), date: date)
+                            }
                         }
+                        homeWidget("Zodiac", "Small, Medium or Large", medium, colors, padding: 0, sky: true) {
+                            ZodiacView(sign: .current(on: date), date: date)
+                        }
+                        .id("zodiac")
                         homeWidget("Race Day", "Medium", medium, colors, padding: 0) {
                             RaceView(date: date, colors: colors)
                         }
@@ -65,14 +75,14 @@ struct WidgetGalleryView: View {
                             lockWidget("Waveform", rectangular) { WaveformView(seed: settings.wallpaper.seed) }
                         }
 
-                        Text("To add one, touch and hold your Home Screen or Lock Screen, tap Edit or Customize, and look for Pocket Walls. Moving widgets run for about half an hour at a time, then rest until iOS refreshes them; opening Pocket Walls starts them again.")
+                        Text("To add one, touch and hold your Home Screen or Lock Screen, tap Edit or Customize, and look for Pocket Walls. To pick a Zodiac sign, touch and hold the widget and tap Edit Widget. Everything that moves ticks once a second and never stops.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                // pocketwalls://widgets/<section> opens at "rivers", "home" or "lock".
+                // pocketwalls://widgets/<section> opens at "zodiac", "rivers", "watches", "home" or "lock".
                 .onAppear {
                     if let anchor = router.widgetsAnchor { proxy.scrollTo(anchor, anchor: .top) }
                     router.widgetsAnchor = nil
@@ -84,8 +94,8 @@ struct WidgetGalleryView: View {
     }
 
     /// A Home Screen widget on its themed card, at real size. `padding` is
-    /// 0 for scenes that run to the edges; `sky` gives the storm its own
-    /// background.
+    /// 0 for scenes that run to the edges; `sky` gives the planets and the
+    /// constellations their night sky.
     private func homeWidget<Content: View>(
         _ name: String, _ size: String, _ points: CGSize, _ colors: WidgetColors,
         padding: CGFloat = 16, sky: Bool = false,
@@ -96,7 +106,7 @@ struct WidgetGalleryView: View {
                 .padding(padding)
                 .frame(width: points.width, height: points.height)
                 .background {
-                    if sky { StormSky(colors: colors) } else { colors.background.color }
+                    if sky { SpaceSky() } else { colors.background.color }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             Text("\(name) \u{00B7} \(size)")

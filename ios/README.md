@@ -71,57 +71,134 @@ redraw in its colors.
 |---|---|
 | `Shared/` | Used by both targets: wallpaper generators (Core Graphics ports of the website's), themes, icons, time words, widget designs, shared settings |
 | `App/` | Gallery, wallpaper detail with phone preview, the Set up theme flow, setup guide, Photos saving, the Shortcuts action, live wallpapers (`LiveWallpapers.swift`) |
-| `Widgets/` | Widget bundle: the moving widgets (Orbit, Thunderstorm, Race Day, Rivers of the USA, Asia, Canada and Japan), four watch faces (Diver, Traveller, Chronograph, Skeleton), Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
-| `tools/` | `make_river_maps.py` builds the Rivers artwork and flow paths from Natural Earth data; `make_watch_faces.py` draws the watch dials |
+| `Widgets/` | Widget bundle: the moving widgets (Orbit, Zodiac, Race Day, Rivers of the USA, Asia, Canada and Japan), eight watch faces, Dial Clock, Day Sentence, Big Date, Day Headline, and the Seconds Ring, Running Clock, Signature and Waveform Lock Screen widgets |
+| `tools/` | Python scripts that make the artwork: `make_motion_fonts.py` (the fonts that keep widgets moving), `make_watch_faces.py` (watch dials), `make_zodiac.py` (constellations), `make_space_art.py` (night sky), `make_river_maps.py` (river maps) |
 
 The app and widgets share settings through an **App Group**
 (`group.<BUNDLE_ID_BASE>`), created automatically when you choose a Team.
 
 ## Moving widgets
 
-WidgetKit has no way to run a view's own animation. It animates a widget
-only when it moves from one timeline entry to the next, so the moving
-widgets (`Shared/MotionScenes.swift`, and the Dial Clock's second hand)
-supply entries two seconds apart, each animating linearly into the next
-(`MotionProvider` in `Widgets/PocketWallsWidgets.swift`).
+WidgetKit has no way to run a view's own animation. A widget is redrawn
+only when its timeline moves on to a new entry, with one exception: text
+that shows a running timer, which iOS itself updates every second.
+
+### Motion fonts
+
+Everything that moves is that timer text, drawn in a font whose glyphs are
+the frames of an animation (`Shared/MotionFonts.swift`, fonts in
+`Shared/Fonts`, built by `tools/make_motion_fonts.py`). The technique is from
+Bryce Bostwick's [WidgetAnimation](https://github.com/brycebostwick/WidgetAnimation).
+
+- The timer counts from the top of the hour, so it reads "7:05" 425 seconds
+  in. The font's digits are blank, and a ligature replaces the whole of
+  "M:SS" or "MM:SS" with one glyph: the scene as it should look at that
+  second. A scene may take up to an hour to repeat (the planets do).
+- A glyph is either an outline, which the widget colors like any text (the
+  second hands, the river lights, the race cars), or an SVG drawing with
+  its own colors (planets, watch scenes, sparkles).
+- The widget needs one timeline entry an hour to restart the timer
+  (`HourlyProvider`); watches have one a minute, for their hour and minute
+  hands. Nothing depends on how often iOS refreshes the widget.
+- Motion is in steps of a second, because that is how often iOS updates
+  timer text. Smoother motion is possible by stacking several timers a
+  fraction of a second apart, each masked to show in turn; not done here.
 
 Things learned the hard way:
 
+- **In a widget, timer text takes all the width it is offered**, and with
+  `fixedSize()` far more, which pushes the glyph out of sight. `TimerGlyph`
+  gives it a frame three glyphs wide with trailing alignment and moves the
+  frame. An app lays the same text out differently, so check both.
+- **Set each glyph's left side bearing to its outline's left edge**
+  (`hmtx`). With 0 the outline is drawn shifted to the left edge of the em.
+- **What the system's SVG glyphs support**, found by trying: gradients in
+  both kinds of units, clip paths, opacity, arcs, and `<use xlink:href>`
+  with transforms. `<use href>` without `xlink:` draws nothing, and SVG
+  text is not available, which is why the roulette wheel's numbers are
+  stroked lines.
+- If iOS is late with the next hour's entry the timer reads "1:00:07"; the
+  fonts cover that first minute.
+
+Checked so far: the scenes run in the app, and show the right frame as real
+widgets in the simulator. The simulator never advances a widget's timer, so
+the ticking itself can only be seen on a phone.
+
+### What was tried first
+
+WidgetKit also animates a widget from one timeline entry to the next, for
+two seconds at most, so the first version supplied entries two seconds
+apart, each animating linearly into the next. It could only move for a few
+minutes after each refresh, and on a phone its timelines came out too large
+(see below), so the widgets showed grey placeholders. Nothing uses it now.
+
+### Limits that make a widget fail
+
+When a widget shows grey placeholder shapes, or stays blank, iOS refused
+what the extension produced. `chronod` logs why: on a phone,
+`idevicesyslog -p chronod` (from libimobiledevice); in the simulator,
+`xcrun simctl spawn <id> log show`.
+
 - **A timeline is limited to about 10 MB**, and iOS stores every entry's
-  whole view. Over the limit the reload fails and is not retried for an
-  hour. Each `Text` costs about 1 KB per entry and each shape 0.3 to 1 KB,
-  so scenes use few views: fixed art is an asset image or a dashed stroke,
-  and only moving pieces are views. `movingMinutes` per widget comes from
-  measured sizes. After the moving run the widget rests (drawn still) until
-  iOS asks for the next timeline.
+  whole view ("too large timeline archive"). The reload is then not retried
+  for an hour. A phone's archive is about half as large again as the
+  simulator's for the same timeline, so measure with room to spare. Each
+  `Text` costs about 1 KB per entry and each shape 0.3 to 1 KB. The
+  timelines here are small: 24 entries a day, or 120 for a watch.
+- **An image may not be much larger than the widget** ("imageTooLarge"). For
+  a small widget 164 points across at 3x the limit was 1084 by 986 pixels,
+  about twice the widget's own size. So the night sky has a picture for
+  each widget size and the watch dials have a smaller one for small widgets.
+- A widget's `configurationDisplayName` and `description` must be plain
+  strings; a literal with interpolation stops the extension.
+
+### Checking widgets
+
 - **Check real widgets, not only previews.** The simulator stores its Home
   Screen layout in `data/Library/SpringBoard/IconState.plist`; adding
   widget entries there (simulator shut down) puts real widgets on the Home
   Screen without tapping. Timeline archives appear under
-  `Containers/Data/PluginKitPlugin/*/SystemData/com.apple.chrono/timelines/`,
-  and `chronod` logs why a reload failed.
+  `Containers/Data/PluginKitPlugin/*/SystemData/com.apple.chrono/timelines/`.
 - **The simulator shows widgets as still snapshots.** Timer text doesn't
   tick and entry animations don't play there, so motion can only be judged
   on a phone (`xcrun devicectl device capture screenshot` works).
-- A widget's `configurationDisplayName` and `description` must be plain
-  strings; a literal with interpolation stops the extension.
-- In Debug builds, `pocketwalls://debug/entries/<n>` overrides the number
-  of moving entries (0 clears it), for measuring archive sizes.
+- **After reinstalling, give widgets a minute.** A widget can stay blank
+  while iOS replaces the timeline archived by the previous build; if it
+  logs `badTimelineData` in a loop it backs off for half an hour. In the
+  simulator, deleting the extension's `SystemData/com.apple.chrono` folder
+  while it is shut down clears that.
 
-The Rivers maps come from Natural Earth (public domain). Regenerate them
-with `python3 tools/make_river_maps.py` from the `ios` folder. Natural
-Earth has only three rivers in Japan, so five more are traced in the script
-from the cities they pass and are approximate.
+### Where the artwork comes from
+
+- **Rivers**: Natural Earth (public domain). `python3 tools/make_river_maps.py`
+  from the `ios` folder. Natural Earth has only three rivers in Japan, so
+  five more are traced in the script from the cities they pass and are
+  approximate.
+- **Zodiac**: star positions and constellation figures from
+  [d3-celestial](https://github.com/ofrohn/d3-celestial) (BSD 3-Clause,
+  Copyright (c) 2015 Olaf Frohn). `tools/make_zodiac.py` writes
+  `Shared/ZodiacData.swift`; touch and hold the widget and choose Edit
+  Widget to pick a sign, or leave it on the current one.
+- **Night sky**: painted by `tools/make_space_art.py`.
+- **Planets** and every other scene are drawn in `tools/make_motion_fonts.py`.
+
+After changing a tool, run it, and add any new font to both `UIAppFonts`
+lists in `project.yml` (the font tool prints the list).
 
 ## Watch faces
 
-Four original designs with no brand names or logos. `tools/make_watch_faces.py`
-draws each dial (case, bezel, markers, sub-dials) with Pillow, including its
-own stroke font for the numerals, so no typeface is embedded. The hands, date
-and other moving parts are views in `Shared/WatchFaces.swift`, measured in
-the same case-radius units as the generator. The second hand uses the
-moving-widget timeline; after the moving run, per-minute entries keep the
-hour and minute hands right and the second hand is hidden.
+Eight original designs with no brand names or logos. `tools/make_watch_faces.py`
+draws each dial with Pillow, including its own stroke font for the numerals,
+so no typeface is embedded. The hour and minute hands are views in
+`Shared/WatchFaces.swift`, measured in the same case-radius units as the
+generator, with a timeline entry each minute. What moves by the second is a
+motion font:
+
+- **Diver, Traveller, Chronograph**: the second hand.
+- **Skeleton**: a balance wheel, a globe that circles once a minute and a gem.
+- **Engine, Roulette, Carousel, Dragon**: the dial is a scene (pistons under
+  a rev counter; a wheel and its ball; a four-armed orrery; two dragons
+  round a turning cage), and the image is only the case and what stays still.
 
 ## Live wallpapers
 
@@ -141,9 +218,9 @@ and can only be checked on a phone.
 
 ## Running seconds in widgets
 
-Widgets can't animate by themselves, and a timeline can't sensibly hold an
-entry per second. The seconds use the two views the system keeps moving
-between entries (`Shared/WidgetViews.swift`, "Live seconds"):
+Besides the motion fonts above, the plain seconds on the Dial Clock and the
+Lock Screen widgets use the two views the system keeps moving between
+entries (`Shared/WidgetViews.swift`, "Live seconds"):
 
 - `Text(date, style: .timer)`, clipped to its last two digits, for ticking
   seconds.

@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -10,11 +11,11 @@ struct PocketWallsWidgetBundle: WidgetBundle {
     }
 }
 
-/// Widgets that move: scenes drawn in MotionScenes.swift.
+/// Widgets that move: scenes drawn in MotionScenes.swift and Zodiac.swift.
 struct MovingWidgets: WidgetBundle {
     var body: some Widget {
         OrbitWidget()
-        StormWidget()
+        ZodiacWidget()
         RaceWidget()
         RiversUSAWidget()
         RiversAsiaWidget()
@@ -30,6 +31,10 @@ struct WatchWidgets: WidgetBundle {
         WatchTravellerWidget()
         WatchChronoWidget()
         WatchSkeletonWidget()
+        WatchEngineWidget()
+        WatchRouletteWidget()
+        WatchCarouselWidget()
+        WatchDragonWidget()
     }
 }
 
@@ -47,12 +52,12 @@ struct ClockWidgets: WidgetBundle {
 }
 
 /// Every widget shows the theme chosen in the app, with an entry for each
-/// minute so the time words stay current. Seconds run by themselves between
-/// entries (see "Live seconds" in WidgetViews.swift).
+/// minute so the time words and the watch hands stay current. Seconds run
+/// by themselves between entries (see "Live seconds" in WidgetViews.swift
+/// and MotionFonts.swift).
 struct ThemeEntry: TimelineEntry {
     let date: Date
     let settings: ThemeSettings
-    var motion: Motion = .resting
 }
 
 struct ThemeProvider: TimelineProvider {
@@ -110,22 +115,10 @@ struct BigDateWidget: Widget {
     }
 }
 
-/// A timeline for widgets that move. WidgetKit animates a widget only when
-/// it goes from one entry to the next, and for two seconds at most, so
-/// continuous motion needs entries `motionStep` apart, each animating
-/// linearly into the next.
-///
-/// iOS stores every entry's view and rejects a timeline over about 10 MB
-/// (it then leaves the widget alone for an hour), so the moving run is
-/// limited: `movingMinutes` must suit how heavy the widget's view is. After
-/// the run come entries a minute apart, drawn still, so the widget stays
-/// correct if iOS is slow to ask for the next timeline.
-struct MotionProvider: TimelineProvider {
-    let movingMinutes: Int
-    /// Entries a minute apart after the moving run. A clock needs them to
-    /// stay right; a scene looks the same at rest, so it needs none.
-    var restingMinutes = 0
-
+/// A timeline for a widget whose motion is a font (MotionFonts.swift). iOS
+/// keeps that moving by itself, so the widget needs only an entry an hour,
+/// to restart the font's timer from the top of the hour.
+struct HourlyProvider: TimelineProvider {
     func placeholder(in context: Context) -> ThemeEntry {
         ThemeEntry(date: Date(), settings: ThemeSettings.load())
     }
@@ -136,40 +129,23 @@ struct MotionProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ThemeEntry>) -> Void) {
         let settings = ThemeSettings.load()
-        let now = Date().timeIntervalSinceReferenceDate
-        let start = Date(timeIntervalSinceReferenceDate: (now / motionStep).rounded(.down) * motionStep)
-        var count = Int(Double(movingMinutes) * 60 / motionStep)
-        #if DEBUG
-        // pocketwalls://debug/entries/<n> sets this, to measure archive sizes.
-        let override = AppGroup.defaults.integer(forKey: "debugMotionEntries")
-        if override > 0 { count = override }
-        #endif
-        var entries = (0..<count).map { i in
-            ThemeEntry(
-                date: start.addingTimeInterval(Double(i) * motionStep),
-                settings: settings,
-                motion: i == 0 ? .starting : .running
-            )
+        let start = hourStart(Date())
+        // A day of entries, refreshed after half of it.
+        let entries = (0..<24).map { i in
+            ThemeEntry(date: start.addingTimeInterval(Double(i) * 3600), settings: settings)
         }
-        let movingEnd = start.addingTimeInterval(Double(count) * motionStep)
-        let firstMinute = Calendar.current.dateInterval(of: .minute, for: movingEnd)?.end ?? movingEnd
-        entries.append(ThemeEntry(date: movingEnd, settings: settings, motion: .resting))
-        for i in 0..<restingMinutes {
-            entries.append(ThemeEntry(date: firstMinute.addingTimeInterval(Double(i) * 60), settings: settings, motion: .resting))
-        }
-        // Ask for the next moving run as this one ends.
-        completion(Timeline(entries: entries, policy: .after(movingEnd)))
+        completion(Timeline(entries: entries, policy: .after(start.addingTimeInterval(12 * 3600))))
     }
 }
 
 struct DialClockWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "DialClock", provider: MotionProvider(movingMinutes: 8, restingMinutes: 90)) { entry in
-            DialClockView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+        StaticConfiguration(kind: "DialClock", provider: ThemeProvider()) { entry in
+            DialClockView(date: entry.date, colors: entry.settings.widgetColors)
                 .themedBackground(entry)
         }
         .configurationDisplayName("Dial Clock")
-        .description("The hour inside a ring that sweeps every minute, minutes on a curved scale, and running seconds.")
+        .description("The hour inside a ring that a dot circles every minute, minutes on a curved scale, and running seconds.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -235,47 +211,90 @@ struct RunningClockWidget: Widget {
 }
 
 // MARK: - Moving widgets
-//
-// `movingMinutes` is set from each scene's measured cost per entry (7 to
-// 8 KB, measured in the simulator), to keep the whole timeline near 7 MB,
-// well under the 10 MB that iOS accepts.
 
 struct OrbitWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "Orbit", provider: MotionProvider(movingMinutes: 30)) { entry in
-            OrbitView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
-                .themedBackground(entry)
+        StaticConfiguration(kind: "Orbit", provider: HourlyProvider()) { entry in
+            OrbitView(date: entry.date)
+                .containerBackground(for: .widget) { SpaceSky() }
         }
         .configurationDisplayName("Orbit")
-        .description("Six planets circling a sun, each at its own speed.")
+        .description("The eight planets circling the sun, each at its own speed, in a dark sky.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
 }
 
-struct StormWidget: Widget {
+/// The signs to choose from when editing the Zodiac widget.
+enum ZodiacChoice: String, AppEnum {
+    case current, aries, taurus, gemini, cancer, leo, virgo, libra, scorpio, sagittarius, capricorn, aquarius, pisces
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Sign"
+    static var caseDisplayRepresentations: [ZodiacChoice: DisplayRepresentation] = [
+        .current: "This month\u{2019}s sign",
+        .aries: "Aries", .taurus: "Taurus", .gemini: "Gemini", .cancer: "Cancer",
+        .leo: "Leo", .virgo: "Virgo", .libra: "Libra", .scorpio: "Scorpio",
+        .sagittarius: "Sagittarius", .capricorn: "Capricorn", .aquarius: "Aquarius", .pisces: "Pisces",
+    ]
+}
+
+struct ZodiacIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Zodiac"
+    static var description = IntentDescription("Choose which constellation the widget shows.")
+
+    @Parameter(title: "Sign", default: .current)
+    var sign: ZodiacChoice
+}
+
+struct ZodiacEntry: TimelineEntry {
+    let date: Date
+    let sign: ZodiacSign
+}
+
+struct ZodiacProvider: AppIntentTimelineProvider {
+    func placeholder(in context: Context) -> ZodiacEntry {
+        ZodiacEntry(date: Date(), sign: .current(on: Date()))
+    }
+
+    func snapshot(for configuration: ZodiacIntent, in context: Context) async -> ZodiacEntry {
+        entry(configuration, at: Date())
+    }
+
+    func timeline(for configuration: ZodiacIntent, in context: Context) async -> Timeline<ZodiacEntry> {
+        // The stars twinkle by themselves (a motion font), so the widget
+        // needs only an entry an hour, as in HourlyProvider. The sign is
+        // worked out for each, so it changes on the right midnight.
+        let start = hourStart(Date())
+        let entries = (0..<24).map { entry(configuration, at: start.addingTimeInterval(Double($0) * 3600)) }
+        return Timeline(entries: entries, policy: .after(start.addingTimeInterval(12 * 3600)))
+    }
+
+    private func entry(_ configuration: ZodiacIntent, at date: Date) -> ZodiacEntry {
+        ZodiacEntry(date: date, sign: ZodiacSign.named(configuration.sign.rawValue) ?? .current(on: date))
+    }
+}
+
+struct ZodiacWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "Storm", provider: MotionProvider(movingMinutes: 30)) { entry in
-            StormView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
-                .containerBackground(for: .widget) {
-                    StormSky(colors: entry.settings.widgetColors)
-                }
+        AppIntentConfiguration(kind: "Zodiac", intent: ZodiacIntent.self, provider: ZodiacProvider()) { entry in
+            ZodiacView(sign: entry.sign, date: entry.date)
+                .containerBackground(for: .widget) { SpaceSky() }
         }
-        .configurationDisplayName("Thunderstorm")
-        .description("Rain under heavy cloud, with lightning every so often.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("Zodiac")
+        .description("A constellation of the zodiac with twinkling stars: this month\u{2019}s sign, or one you choose.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
 }
 
 struct RaceWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "Race", provider: MotionProvider(movingMinutes: 30)) { entry in
-            RaceView(date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+        StaticConfiguration(kind: "Race", provider: HourlyProvider()) { entry in
+            RaceView(date: entry.date, colors: entry.settings.widgetColors)
                 .themedBackground(entry)
         }
         .configurationDisplayName("Race Day")
-        .description("Race cars streaking down the main straight.")
+        .description("A race start, again and again: five red lights, lights out, and the cars are away.")
         .supportedFamilies([.systemMedium])
         .contentMarginsDisabled()
     }
@@ -288,8 +307,8 @@ private func riversConfiguration(kind: String, region: RiverRegion) -> some Widg
     // is built by interpolating into a literal.
     let name: String = "Rivers of " + region.title
     let description: String = "The great rivers of " + region.title + ", with lights drifting from source to mouth."
-    return StaticConfiguration(kind: kind, provider: MotionProvider(movingMinutes: 28)) { entry in
-        RiversView(region: region, date: entry.date, colors: entry.settings.widgetColors, motion: entry.motion)
+    return StaticConfiguration(kind: kind, provider: HourlyProvider()) { entry in
+        RiversView(region: region, date: entry.date, colors: entry.settings.widgetColors)
             .themedBackground(entry)
     }
     .configurationDisplayName(name)
@@ -318,10 +337,8 @@ struct RiversJapanWidget: Widget {
 private func watchConfiguration(kind: String, face: WatchFace) -> some WidgetConfiguration {
     let name: String = face.title + " Watch"
     let description: String = face.summary
-    // The hands must stay right when the moving run is over, so these
-    // keep a per-minute entry for the next hour and a half.
-    return StaticConfiguration(kind: kind, provider: MotionProvider(movingMinutes: 35, restingMinutes: 90)) { entry in
-        WatchFaceView(face: face, date: entry.date, motion: entry.motion)
+    return StaticConfiguration(kind: kind, provider: ThemeProvider()) { entry in
+        WatchFaceView(face: face, date: entry.date)
             .padding(8)
             .themedBackground(entry)
     }
@@ -345,4 +362,20 @@ struct WatchChronoWidget: Widget {
 
 struct WatchSkeletonWidget: Widget {
     var body: some WidgetConfiguration { watchConfiguration(kind: "WatchSkeleton", face: .orrery) }
+}
+
+struct WatchEngineWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchEngine", face: .engine) }
+}
+
+struct WatchRouletteWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchRoulette", face: .roulette) }
+}
+
+struct WatchCarouselWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchCarousel", face: .carousel) }
+}
+
+struct WatchDragonWidget: Widget {
+    var body: some WidgetConfiguration { watchConfiguration(kind: "WatchDragon", face: .dragon) }
 }

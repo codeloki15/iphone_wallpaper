@@ -34,6 +34,40 @@ targets:
           - UIInterfaceOrientationPortrait
         UIRequiresFullScreen: true
         UIUserInterfaceStyle: Dark
+        # The motion fonts in Shared/Fonts (tools/make_motion_fonts.py prints this list).
+        UIAppFonts:
+          - PWCarousel.ttf
+          - PWDragon.ttf
+          - PWEngine.ttf
+          - PWHandDot.ttf
+          - PWHandLong.ttf
+          - PWHandNeedle.ttf
+          - PWOrbit.ttf
+          - PWOrbitWide.ttf
+          - PWRaceA.ttf
+          - PWRaceB.ttf
+          - PWRaceC.ttf
+          - PWRaceLights.ttf
+          - PWRaceWheels.ttf
+          - PWRiversAsia.ttf
+          - PWRiversCanada.ttf
+          - PWRiversJapan.ttf
+          - PWRiversUsa.ttf
+          - PWRoulette.ttf
+          - PWSkeleton.ttf
+          - PWStarsAquarius.ttf
+          - PWStarsAries.ttf
+          - PWStarsCancer.ttf
+          - PWStarsCapricorn.ttf
+          - PWStarsGemini.ttf
+          - PWStarsLeo.ttf
+          - PWStarsLibra.ttf
+          - PWStarsPisces.ttf
+          - PWStarsSagittarius.ttf
+          - PWStarsScorpio.ttf
+          - PWStarsTaurus.ttf
+          - PWStarsVirgo.ttf
+          - PWSweep.ttf
         NSPhotoLibraryAddUsageDescription: Pocket Walls saves wallpapers and icons to your photo library.
         LSApplicationQueriesSchemes:
           - shortcuts
@@ -69,6 +103,39 @@ targets:
         AppGroupID: $(APP_GROUP_ID)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts:
+          - PWCarousel.ttf
+          - PWDragon.ttf
+          - PWEngine.ttf
+          - PWHandDot.ttf
+          - PWHandLong.ttf
+          - PWHandNeedle.ttf
+          - PWOrbit.ttf
+          - PWOrbitWide.ttf
+          - PWRaceA.ttf
+          - PWRaceB.ttf
+          - PWRaceC.ttf
+          - PWRaceLights.ttf
+          - PWRaceWheels.ttf
+          - PWRiversAsia.ttf
+          - PWRiversCanada.ttf
+          - PWRiversJapan.ttf
+          - PWRiversUsa.ttf
+          - PWRoulette.ttf
+          - PWSkeleton.ttf
+          - PWStarsAquarius.ttf
+          - PWStarsAries.ttf
+          - PWStarsCancer.ttf
+          - PWStarsCapricorn.ttf
+          - PWStarsGemini.ttf
+          - PWStarsLeo.ttf
+          - PWStarsLibra.ttf
+          - PWStarsPisces.ttf
+          - PWStarsSagittarius.ttf
+          - PWStarsScorpio.ttf
+          - PWStarsTaurus.ttf
+          - PWStarsVirgo.ttf
+          - PWSweep.ttf
     entitlements:
       path: Widgets/PocketWallsWidgets.entitlements
       properties:

@@ -16,3 +16,6 @@ build/
 
 # Map data downloaded by tools/make_river_maps.py
 tools/.cache/
+
+# Python caches from running the tools
+__pycache__/
