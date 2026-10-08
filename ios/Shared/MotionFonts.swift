@@ -63,6 +63,9 @@ struct TimerGlyph: View {
     let size: CGFloat
     /// Seconds after the top of the hour that the timer counts from.
     var offset: TimeInterval = 0
+    /// A fixed reading such as "0:01" to show in place of the running
+    /// timer: the scene as it is at that moment, standing still.
+    var still: String? = nil
 
     var body: some View {
         // The font turns the whole of the timer's text into one glyph, one
@@ -72,7 +75,7 @@ struct TimerGlyph: View {
         // gets a frame a few glyphs wide with the text pushed to the
         // trailing edge, and the frame is moved to bring that edge's glyph
         // onto this view.
-        Text(hourStart(date).addingTimeInterval(offset), style: .timer)
+        (still.map { Text(verbatim: $0) } ?? Text(hourStart(date).addingTimeInterval(offset), style: .timer))
             .font(.custom(font.name, fixedSize: size))
             .multilineTextAlignment(.trailing)
             .lineLimit(1)

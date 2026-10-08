@@ -354,13 +354,25 @@ private func figureConfiguration(_ figure: FrameFigure) -> some WidgetConfigurat
     let name: String = figure.title
     let description: String = figure.caption
     return StaticConfiguration(kind: "Figure" + figure.key, provider: TimerProvider()) { entry in
-        FrameFigureView(figure: figure, date: entry.date)
-            .containerBackground(for: .widget) { FrameFigure.plate }
+        FigureEntryView(figure: figure, date: entry.date)
     }
     .configurationDisplayName(name)
     .description(description)
-    .supportedFamilies([.systemMedium, .systemLarge])
+    .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular])
     .contentMarginsDisabled()
+}
+
+/// A figure at the size it was asked for: with its name on the Home Screen,
+/// alone on the Lock Screen.
+private struct FigureEntryView: View {
+    @Environment(\.widgetFamily) private var family
+    let figure: FrameFigure
+    let date: Date
+
+    var body: some View {
+        FrameFigureView(figure: figure, date: date, compact: family == .accessoryRectangular || family == .accessoryCircular)
+            .containerBackground(for: .widget) { FrameFigure.plate }
+    }
 }
 
 struct FigureGlobeWidget: Widget {

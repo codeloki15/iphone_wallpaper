@@ -126,6 +126,14 @@ background, so the newest uncovered layer hides the rest.
 - Fonts of one figure share their ligature table; `make_motion_fonts.py`
   compiles each distinct table once, which took the build from minutes to
   seconds.
+- **On the Lock Screen** (the rectangular and circular sizes) a figure is
+  shown alone, enlarged until the part of the stage its loop uses fills the
+  space (`FrameFigure.bounds`). The Lock Screen draws a widget by its
+  brightness alone, black being clear, so the view raises brightness and
+  contrast until the frames' near-black plate is exactly black; otherwise
+  the plate would show as a faint box. While an always-on display is
+  dimmed iOS stops updating timer text by the second (it reads "7:--"), so
+  the view shows one still frame then (`isLuminanceReduced`).
 
 The frames come from two tools, both writing the same JSON (a list of
 frames, each a list of SVG shapes on a stage 400 by 320):
@@ -178,6 +186,8 @@ Checked so far: the scenes run in the app (a screen recording of the
 simulator shows the figures' frames in order, eight a second), and show
 the right frame as real widgets in the simulator. The simulator never
 advances a widget's timer, so the motion itself can only be seen on a phone.
+The Lock Screen sizes have been looked at only in the app's own preview,
+which imitates the Lock Screen by turning brightness into opacity.
 
 ### What was tried first
 

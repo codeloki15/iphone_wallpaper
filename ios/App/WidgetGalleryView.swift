@@ -87,6 +87,18 @@ struct WidgetGalleryView: View {
                             lockWidget("Signature", rectangular) { SignatureView(signature: settings.signature, date: date) }
                             lockWidget("Waveform", rectangular) { WaveformView(seed: settings.wallpaper.seed) }
                         }
+                        // Every line-art figure also comes in the two Lock
+                        // Screen sizes. A few of them, drawn the way the
+                        // Lock Screen does: by brightness alone.
+                        HStack(alignment: .top, spacing: 16) {
+                            lockFigure(.globe, circular)
+                            lockFigure(.sculpture, circular)
+                            lockFigure(.lighthouse, circular)
+                        }
+                        HStack(alignment: .top, spacing: 16) {
+                            lockFigure(.deck, rectangular)
+                            lockFigure(.cradle, rectangular)
+                        }
 
                         Text("To add one, touch and hold your Home Screen or Lock Screen, tap Edit or Customize, and look for Pocket Walls. To pick a Zodiac sign, touch and hold the widget and tap Edit Widget. Everything that moves ticks once a second and never stops.")
                             .font(.footnote)
@@ -125,6 +137,17 @@ struct WidgetGalleryView: View {
             Text("\(name) \u{00B7} \(size)")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// A line-art figure as a Lock Screen widget: white wherever its frames
+    /// are bright, clear where they are dark.
+    private func lockFigure(_ figure: FrameFigure, _ points: CGSize) -> some View {
+        lockWidget(figure.title, points) {
+            Color.white.mask {
+                FrameFigureView(figure: figure, date: Date(), compact: true)
+                    .luminanceToAlpha()
+            }
         }
     }
 
